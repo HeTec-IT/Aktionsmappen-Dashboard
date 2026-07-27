@@ -1475,7 +1475,7 @@ const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 
 function showMessage(msg,isError=false){
   const el=document.getElementById('status-msg');
-  el.textContent=msg; el.className=isError?'error':'success';
+  el.textContent=msg; el.className=isError?'error':'success'; el.style.display='block';
   clearTimeout(el.__t); el.__t=setTimeout(()=>{el.className='';el.style.display='none';},3500);
 }
 
