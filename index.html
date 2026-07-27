@@ -88,6 +88,19 @@ textarea.form-input { resize:vertical; min-height:80px; }
 #status-msg.success { background:#16a34a; color:white; display:block; }
 #status-msg.error { background:#dc2626; color:white; display:block; }
 
+/* ===== EK/MARGE: MILCHIG BIS KLICK (Kundenansicht) ===== */
+/* Standard: EK und Marge sind einzeln verwischt ("milchig"). Tippen => scharf. */
+.blurbox { position:relative; cursor:pointer; -webkit-user-select:none; user-select:none; }
+.blurbox > .blur-val { filter:blur(6px); transition:filter .18s ease; }
+.blurbox.revealed > .blur-val { filter:none; }
+/* dezenter Hinweis-Punkt, dass man tippen kann */
+.blurbox:not(.revealed)::after {
+  content:"👁"; position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%); font-size:12px; opacity:.55; pointer-events:none;
+}
+/* Im Druck immer verwischt (interne Zahlen nicht im Kundenausdruck) */
+@media print { .blurbox > .blur-val { filter:blur(6px) !important; } .blurbox::after{ display:none; } }
+
 /* ===== STÖRER / RIBBON BADGES ===== */
 .stoerer-ribbon {
   position: absolute;
@@ -1481,6 +1494,12 @@ function showMessage(msg,isError=false){
 
 window.exportToPdf = () => { setTimeout(()=>window.print(),100); };
 
+// EK/Marge: einzelnes Feld beim Antippen scharf schalten (Toggle).
+window.revealBlur = (el, ev) => {
+  if(ev){ ev.stopPropagation(); }
+  el.classList.toggle('revealed');
+};
+
 window.togglePriceInput = (type,checked) => {
   const id=type==='EK'?'einkaufspreis':'verkaufspreis';
   const el=document.getElementById(id); if(!el)return;
@@ -2172,9 +2191,9 @@ function renderUserView(promoList,incList,pushList,bundleList,isSingle=false){
           <div class="qp-price-zone" data-qp-id="${p.id}" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-top:auto">
             ${ezMobile.length?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:4px">EZ o2 Mobile (Kunde)</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:11px;color:#374151;margin-bottom:6px">${ezMobile.join('')}</div>`:''}
             ${ezHome.length?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:4px;margin-top:4px">EZ o2 My Home (Kunde)</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:11px;color:#374151;margin-bottom:6px">${ezHome.join('')}</div>`:''}
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding-top:6px;border-top:1px solid #f1f5f9">
-              <span>EK: ${p.noEinkaufspreis?'n.v.':`${parseFloat(p.einkaufspreis||0).toFixed(2)} €`}</span>
-              <span>Marge: ${mHTML}</span>
+            <div class="promo-ek-row" style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding-top:6px;border-top:1px solid #f1f5f9">
+              <span class="blurbox" onclick="revealBlur(this,event)" title="EK anzeigen">EK: <span class="blur-val">${p.noEinkaufspreis?'n.v.':`${parseFloat(p.einkaufspreis||0).toFixed(2)} €`}</span></span>
+              <span class="blurbox" onclick="revealBlur(this,event)" title="Marge anzeigen">Marge: <span class="blur-val">${mHTML}</span></span>
             </div>
           </div>
         </div>
