@@ -4,15 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aktionsmappen-Dashboard · HeTec GmbH</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2C3E50">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Aktionsmappe">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" href="icon-192.png">
-
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -773,6 +764,86 @@ body.qp-admin .promo-vk-badge { cursor:pointer; }
 
 /* ===== SCROLL MARGIN ===== */
 [id] { scroll-margin-top:90px; }
+
+/* ===== ADMIN-CENTER (neu) ===== */
+#admin-view { margin-bottom:24px; }
+.ac-shell { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }
+.ac-tabs { display:flex; gap:2px; padding:6px; background:#f8fafc; border-bottom:1px solid #e2e8f0; overflow-x:auto; scrollbar-width:none; }
+.ac-tabs::-webkit-scrollbar { display:none; }
+#admin-view .admin-tab { flex:0 0 auto; border:0; background:transparent; color:#475569; padding:9px 14px; border-radius:8px; font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:6px; }
+#admin-view .admin-tab:hover { background:#eef2f7; }
+#admin-view .admin-tab.active { background:#fff; color:#0f172a; box-shadow:0 1px 3px rgba(15,23,42,.12); }
+#admin-view .tab-badge { font-size:11px; font-weight:700; background:#e2e8f0; color:#334155; border-radius:99px; padding:1px 7px; border:0; }
+#admin-view .admin-tab.active .tab-badge { background:#1d4ed8; color:#fff; }
+#admin-view .admin-tab-panel { padding:16px; }
+.ac-bar { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.ac-search { flex:1; }
+.ac-bar-note { flex:1; font-size:13px; color:#64748b; }
+.ac-new { flex:0 0 auto; background:#1d4ed8; color:#fff; border:0; border-radius:10px; padding:10px 16px; font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; }
+.ac-new:hover { background:#1e40af; }
+.ac-new:focus-visible, .ac-chips button:focus-visible, .ac-x:focus-visible { outline:3px solid #93c5fd; outline-offset:2px; }
+.ac-empty { text-align:center; color:#94a3b8; padding:28px 0; font-size:14px; }
+#admin-view .list-item { cursor:default; }
+#admin-view .list-item .btn-sm { padding:7px 12px; }
+.ac-tools { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; }
+.ac-tool { border:1px solid #e2e8f0; border-radius:12px; padding:18px; }
+.ac-tool h3 { font-size:15px; font-weight:700; margin:0 0 12px; color:#0f172a; }
+.ac-file { display:block; width:100%; font-size:13px; color:#475569; margin-bottom:8px; }
+.ac-hint { font-size:12px; color:#94a3b8; margin:0 0 10px; }
+
+/* Drawer */
+#ac-overlay { position:fixed; inset:0; z-index:1000; background:rgba(15,23,42,.35); opacity:0; pointer-events:none; transition:opacity .18s; }
+#ac-overlay.open { opacity:1; pointer-events:auto; }
+.ac-drawer { position:absolute; top:0; right:0; bottom:0; width:min(520px,100%); background:#fff; box-shadow:-8px 0 30px rgba(15,23,42,.18); transform:translateX(100%); transition:transform .22s ease; display:none; }
+.ac-drawer.open { display:block; }
+#ac-overlay.open .ac-drawer.open { transform:none; }
+.ac-drawer form { display:flex; flex-direction:column; height:100%; }
+.ac-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #e2e8f0; }
+.ac-title { font-size:18px; font-weight:800; color:#0f172a; margin:0; }
+.ac-x { border:0; background:#f1f5f9; width:36px; height:36px; border-radius:10px; font-size:16px; cursor:pointer; color:#475569; }
+.ac-body { flex:1; overflow-y:auto; padding:6px 20px 24px; -webkit-overflow-scrolling:touch; }
+.ac-foot { display:flex; gap:8px; justify-content:flex-end; padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px)); border-top:1px solid #e2e8f0; background:#fff; }
+.ac-foot .btn-primary { min-width:120px; }
+.ac-lbl { display:block; font-size:13px; font-weight:600; color:#334155; margin:16px 0 6px; }
+.ac-big { font-size:16px; padding:12px; }
+.ac-mt8 { margin-top:8px; }
+.ac-hidden { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+.ac-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.ac-grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.ac-grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.ac-nv { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#64748b; margin-top:6px; cursor:pointer; }
+.ac-marge { margin-top:10px; font-size:14px; padding:8px 12px; }
+.ac-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.ac-quick { margin-top:8px; }
+.ac-chips button, .ac-chipcheck { display:inline-flex; align-items:center; gap:6px; border:1px solid #cbd5e1; background:#fff; color:#334155; border-radius:99px; padding:7px 13px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; user-select:none; }
+.ac-chips button:hover, .ac-chipcheck:hover { border-color:#1d4ed8; }
+.ac-chips button.on { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
+.ac-chipcheck input { width:15px; height:15px; accent-color:#1d4ed8; margin:0; }
+.ac-chipcheck:has(input:checked) { background:#eff6ff; border-color:#1d4ed8; color:#1e3a8a; }
+.ac-more { margin-top:18px; border:1px solid #e2e8f0; border-radius:12px; padding:0 14px; }
+.ac-more > summary { list-style:none; cursor:pointer; padding:13px 0; font-weight:700; font-size:14px; color:#0f172a; display:flex; align-items:center; gap:8px; }
+.ac-more > summary::-webkit-details-marker { display:none; }
+.ac-more > summary::before { content:'+'; width:20px; height:20px; border-radius:6px; background:#f1f5f9; display:inline-flex; align-items:center; justify-content:center; font-size:14px; color:#475569; }
+.ac-more[open] > summary::before { content:'–'; }
+.ac-more[open] { padding-bottom:14px; }
+.ac-sum { margin-left:auto; font-size:12px; font-weight:500; color:#64748b; max-width:55%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ac-sub { font-size:12px; font-weight:600; color:#64748b; margin:10px 0 6px; }
+.ac-stoerer { display:flex; flex-wrap:wrap; gap:6px; }
+.ac-stoerer .stoerer-btn { padding:8px 10px; border-width:2px; border-color:#e2e8f0; }
+.ac-err { border-color:#dc2626 !important; box-shadow:0 0 0 3px rgba(220,38,38,.15) !important; }
+@media (max-width:640px){
+  .ac-drawer { width:100%; }
+  .ac-grid3 { grid-template-columns:1fr 1fr; }
+  .ac-bar-note { display:none; }
+  .ac-bar .ac-new { flex:1; }
+  .ac-foot .ac-next { display:none; }
+  #admin-view .list-item { flex-direction:column; align-items:stretch; }
+  #admin-view .list-item > div:last-child { justify-content:flex-start; }
+}
+@media (prefers-reduced-motion:reduce){ #ac-overlay, .ac-drawer { transition:none; } }
+@media print { #ac-overlay { display:none !important; } }
+.ac-chips.ac-err { outline:2px solid #dc2626; outline-offset:4px; border-radius:12px; box-shadow:none !important; }
+#admin-view .list-item > div:first-child { cursor:pointer; flex:1; min-width:0; }
 </style>
 </head>
 <body>
@@ -823,433 +894,295 @@ body.qp-admin .promo-vk-badge { cursor:pointer; }
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
 
 <!-- ===== ADMIN VIEW ===== -->
-<section id="admin-view" class="space-y-6 hidden">
+<section id="admin-view" class="hidden">
+<div class="ac-shell">
 
-  <!-- ====== PUSH PROVISION ====== -->
-  <div class="admin-section-card">
-    <div class="admin-section-header bg-green-50 border-b border-green-100 text-green-800">
-      <span class="text-lg">💰</span> Push Provision Verwaltung
+  <!-- Tabs -->
+  <nav class="ac-tabs" role="tablist">
+    <button class="admin-tab" data-tab="promotions" onclick="setAdminTab('promotions')">📱 Geräte <span class="tab-badge" id="admin-tab-count-promotions">0</span></button>
+    <button class="admin-tab" data-tab="bundle" onclick="setAdminTab('bundle')">📦 Bundles <span class="tab-badge" id="admin-tab-count-bundle">0</span></button>
+    <button class="admin-tab" data-tab="push" onclick="setAdminTab('push')">💰 Push <span class="tab-badge" id="admin-tab-count-push">0</span></button>
+    <button class="admin-tab" data-tab="incentives" onclick="setAdminTab('incentives')">⭐ Incentives <span class="tab-badge" id="admin-tab-count-incentives">0</span></button>
+    <button class="admin-tab" data-tab="tools" onclick="setAdminTab('tools')">⚙️ PDF &amp; Backup</button>
+  </nav>
+
+  <!-- Geräte -->
+  <div class="admin-tab-panel" data-tab-panel="promotions">
+    <div class="ac-bar">
+      <input type="search" id="admin-search" placeholder="Gerät oder Anbieter suchen…" class="form-input ac-search" oninput="filterAdminPromotions()">
+      <button type="button" class="ac-new" onclick="acNew('promo')">+ Neue Aktion</button>
     </div>
-    <div class="admin-section-body">
-      <form id="push-form" onsubmit="savePushProvision(event)" data-editing-id="">
-        <div class="form-grid-2 mb-4">
-          <div class="col-span-2" style="grid-column:1/-1">
-            <label class="form-label">Titel / Bezeichnung der Provision</label>
-            <input type="text" id="pushTitel" name="pushTitel" placeholder="z.B. Black Friday Push" class="form-input" required>
-          </div>
-          <div>
-            <label class="form-label">Betrag (€, numerisch)</label>
-            <input type="number" step="0.01" id="pushBetrag" name="pushBetrag" placeholder="z.B. 30.00" class="form-input" required>
-          </div>
-          <div><!-- spacer --></div>
-          <div>
-            <label class="form-label">Push Start</label>
-            <input type="date" id="pushStart" name="pushStart" class="form-input" required>
-          </div>
-          <div>
-            <label class="form-label">Push Ende</label>
-            <input type="date" id="pushEnd" name="pushEnd" class="form-input" required>
-          </div>
-          <div style="grid-column:1/-1">
-            <label class="form-label">Bemerkung (Was gibt es extra?)</label>
-            <textarea id="pushBemerkung" name="pushBemerkung" class="form-input" rows="2" required></textarea>
-          </div>
-        </div>
-        <button id="push-submit-btn" type="submit" class="btn btn-green btn-full">Push Speichern</button>
-      </form>
-    </div>
+    <div id="admin-promotion-list"><p class="ac-empty">Lade Aktionen…</p></div>
   </div>
 
-  <!-- ====== BUNDLE VERWALTUNG ====== -->
-  <div class="admin-section-card">
-    <div class="admin-section-header bg-blue-50 border-b border-blue-100 text-blue-900">
-      <span class="text-lg">📦</span> o2 Bundle Angebote Verwaltung
+  <!-- Bundles -->
+  <div class="admin-tab-panel hidden" data-tab-panel="bundle">
+    <div class="ac-bar">
+      <span class="ac-bar-note">Feste Slots – Link bleibt gleich. Nur aktiv/inaktiv.</span>
+      <button type="button" class="ac-new" onclick="acNew('bundle')">+ Freien Slot füllen</button>
     </div>
-    <div class="admin-section-body">
-      <form id="bundle-form" onsubmit="saveBundle(event)" data-editing-id="">
-        <div class="space-y-4">
-          <!-- Slot + Active -->
-          <div class="form-grid-2">
-            <div style="grid-column:1/-1">
-              <label class="form-label">Canvas / Slot (fester Link)</label>
-              <select id="bundleSlot" name="bundleSlot" class="form-input" onchange="onBundleSlotChange()"></select>
-              <p class="text-xs text-slate-400 mt-1">Slot-ID bleibt stabil. Löschen deaktiviert — nur aktiv/inaktiv.</p>
-            </div>
-            <div style="grid-column:1/-1">
-              <label class="check-label">
-                <input type="checkbox" id="bundleActive" name="bundleActive" checked>
-                🟢 Angebot aktiv (wird beworben)
-              </label>
-            </div>
-          </div>
-          <!-- Titel + Tarif -->
-          <div class="form-grid-2">
-            <div style="grid-column:1/-1">
-              <label class="form-label">Bundle Bezeichnung / Titel</label>
-              <input type="text" id="bundleTitel" name="bundleTitel" placeholder="z.B. o2 Mobile M + iPhone 16 Pro + TV" class="form-input" required>
-            </div>
-            <div>
-              <label class="form-label">Tarif Name</label>
-              <input type="text" id="bundleTarifName" name="bundleTarifName" placeholder="o2 Mobile M" class="form-input">
-            </div>
-          </div>
-          <!-- Preise -->
-          <div class="form-grid-3">
-            <div>
-              <label class="form-label">Preis 24 Monate (€/Monat)</label>
-              <input type="text" id="bundlePreis24" name="bundlePreis24" placeholder="z.B. 49,99" class="form-input font-bold">
-            </div>
-            <div>
-              <label class="form-label">Preis 36 Monate (€/Monat)</label>
-              <input type="text" id="bundlePreis36" name="bundlePreis36" placeholder="z.B. 44,99" class="form-input font-bold">
-            </div>
-            <div>
-              <label class="form-label">Einmalkosten (€)</label>
-              <input type="text" id="bundleEinmalkosten" name="bundleEinmalkosten" placeholder="z.B. 0,00" class="form-input">
-            </div>
-          </div>
-          <!-- Laufzeit-Anzeige Steuerung -->
-          <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-            <div class="form-label mb-2">Laufzeit-Anzeige im Bundle (Welche Preise anzeigen?)</div>
-            <div class="flex flex-wrap gap-3">
-              <label class="check-label"><input type="checkbox" id="bundleShow24" name="bundleShow24" checked> ✅ 24 Monate Angebot anzeigen</label>
-              <label class="check-label"><input type="checkbox" id="bundleShow36" name="bundleShow36"> ✅ 36 Monate Angebot anzeigen</label>
-            </div>
-            <p class="text-xs text-slate-400 mt-2">Wenn beide aktiv: Kunde sieht Dropdown zur Laufzeitwahl. Nur eine aktiv: Preis wird direkt angezeigt.</p>
-          </div>
-          <!-- Options -->
-          <div class="p-4 bg-blue-50 rounded-12 border border-blue-100 rounded-xl">
-            <div class="form-label mb-3">Enthaltene Optionen (Badge-Anzeige):</div>
-            <div class="flex flex-wrap gap-3">
-              <label class="check-label"><input type="checkbox" id="bundleOptionOnlineSchutz" name="bundleOptionOnlineSchutz"> 🛡️ Inkl. Online Schutz</label>
-              <label class="check-label"><input type="checkbox" id="bundleOptionTV" name="bundleOptionTV"> 📺 Inkl. o2 TV</label>
-              <label class="check-label"><input type="checkbox" id="bundleHasSim" name="bundleHasSim" checked> 💳 SIM-Karte enthalten</label>
-              <div class="flex-grow" style="min-width:200px">
-                <input type="text" id="bundleOptionCustom" name="bundleOptionCustom" placeholder="Weitere Option (z.B. Netflix…)" class="form-input text-sm">
-              </div>
-            </div>
-          </div>
-          <!-- Images -->
-          <div>
-            <label class="form-label">Bild-URLs</label>
-            <div id="bundle-images-container" class="space-y-2 mb-2"></div>
-            <button type="button" onclick="addBundleImageField()" class="btn btn-ghost btn-sm">+ Weiteres Bild</button>
-          </div>
-          <!-- Shop Link + Gutschein -->
-          <div class="form-grid-2">
-            <div style="grid-column:1/-1">
-              <label class="form-label">Externer Link / Shop-Link (Optional)</label>
-              <input type="url" id="bundleShopLink" name="bundleShopLink" placeholder="https://mein-shop.de/angebot" class="form-input">
-            </div>
-            <div>
-              <label class="form-label">Gutscheincode</label>
-              <input type="text" id="bundleGutschein" name="bundleGutschein" placeholder="z.B. SOMMER25" class="form-input">
-            </div>
-          </div>
-          <!-- Rechnungsweg -->
-          <div>
-            <label class="form-label">Rechnungsweg & Buchungsprozess</label>
-            <textarea id="bundleRechnungsweg" name="bundleRechnungsweg" rows="4" class="form-input" placeholder="Buchungsprozess: Einzahlung 100€ in Kasse…"></textarea>
-          </div>
-          <!-- Datum -->
-          <div class="form-grid-2">
-            <div>
-              <label class="form-label">Startdatum</label>
-              <input type="date" id="bundleStart" name="bundleStart" class="form-input">
-            </div>
-            <div>
-              <label class="form-label">Enddatum</label>
-              <input type="date" id="bundleEnd" name="bundleEnd" class="form-input">
-            </div>
-          </div>
-        </div>
-        <div class="mt-6">
-          <button id="bundle-submit-btn" type="submit" class="btn btn-navy btn-full">Bundle Speichern</button>
-        </div>
-      </form>
-    </div>
+    <div id="admin-bundle-list"><p class="ac-empty">Lade Bundles…</p></div>
   </div>
 
-  <!-- ====== GERÄTE-AKTION ====== -->
-  <div class="admin-section-card">
-    <div class="admin-section-header bg-blue-50 border-b border-blue-100 text-blue-700">
-      <span class="text-lg">📱</span> Geräte-Aktionseingabe
+  <!-- Push -->
+  <div class="admin-tab-panel hidden" data-tab-panel="push">
+    <div class="ac-bar">
+      <span class="ac-bar-note">Zusatzprovisionen für einen Zeitraum.</span>
+      <button type="button" class="ac-new" onclick="acNew('push')">+ Neuer Push</button>
     </div>
-    <div class="admin-section-body">
-      <form id="promotion-form" onsubmit="savePromotion(event)" data-editing-id="">
-        <!-- Basisdaten -->
-        <div class="mb-6 pb-5 border-b border-slate-100">
-          <div class="text-sm font-bold text-blue-600 uppercase tracking-wide mb-4">Basisdaten</div>
-          <div class="form-grid-2 gap-4">
-            <div>
-              <label class="form-label">Anbieter (Auswahl)</label>
-              <select id="anbieterSelect" name="anbieterSelect" required onchange="toggleFreeText(null)" class="form-input">
-                <option value="" disabled selected>Wählen Sie einen Anbieter…</option>
-                <option value="o2">o2</option>
-                <option value="HeTec">HeTec</option>
-                <option value="GreenMnky">GreenMnky</option>
-                <option value="DSL">DSL</option>
-                <option value="Freiertext">Andere / Freier Text</option>
-              </select>
-            </div>
-            <div id="anbieter-freitext-container" class="hidden">
-              <label class="form-label">Anbieter (Freitext)</label>
-              <input type="text" id="anbieterFreiertext" name="anbieterFreiertext" placeholder="Anbieternamen eingeben" class="form-input">
-            </div>
-            <div>
-              <label class="form-label">Gerätebezeichnung</label>
-              <input type="text" id="geraetebezeichnung" name="geraetebezeichnung" class="form-input" required>
-            </div>
-            <div>
-              <label class="form-label">Aktionsbeginn</label>
-              <input type="date" id="aktionsbeginn" name="aktionsbeginn" class="form-input" required>
-            </div>
-            <div>
-              <label class="form-label">Gültig bis</label>
-              <div class="flex items-center gap-2">
-                <input type="date" id="aktionsende" name="aktionsende" class="form-input">
-                <div class="flex flex-col items-center flex-shrink-0">
-                  <input type="checkbox" id="dauerhaftAktiv" name="dauerhaftAktiv" onchange="toggleDauerhaftAktiv(this.checked)" class="w-4 h-4 accent-blue-600">
-                  <label for="dauerhaftAktiv" class="text-xs text-slate-400 whitespace-nowrap">dauerhaft</label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Preise -->
-        <div class="mb-6 pb-5 border-b border-slate-100">
-          <div class="text-sm font-bold text-blue-600 uppercase tracking-wide mb-4">Preise & Marge</div>
-          <div class="form-grid-3 mb-4">
-            <div>
-              <label class="form-label">Einkaufspreis (€)</label>
-              <div class="flex items-center gap-2">
-                <input type="number" step="0.01" id="einkaufspreis" name="einkaufspreis" class="form-input">
-                <div class="flex flex-col items-center flex-shrink-0">
-                  <input type="checkbox" id="noEinkaufspreis" name="noEinkaufspreis" onchange="togglePriceInput('EK', this.checked)" class="w-4 h-4 accent-blue-600">
-                  <label for="noEinkaufspreis" class="text-xs text-slate-400">n.v.</label>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label class="form-label">Verkaufspreis (€)</label>
-              <div class="flex items-center gap-2">
-                <input type="number" step="0.01" id="verkaufspreis" name="verkaufspreis" class="form-input">
-                <div class="flex flex-col items-center flex-shrink-0">
-                  <input type="checkbox" id="noVerkaufspreis" name="noVerkaufspreis" onchange="togglePriceInput('VK', this.checked)" class="w-4 h-4 accent-blue-600">
-                  <label for="noVerkaufspreis" class="text-xs text-slate-400">n.v.</label>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-end">
-              <div class="marge-preview-box w-full" id="marge-preview">Vorschau Marge: –</div>
-            </div>
-          </div>
-          <!-- EZ Mobile -->
-          <div class="mb-3">
-            <label class="form-label">Einmalzahlung o2 Mobile (XL/L/M/S)</label>
-            <div class="form-grid-4">
-              <div><label class="text-xs text-slate-400 mb-1 block">XL (€)</label><input type="text" id="einmalzahlungXL" name="einmalzahlungXL" placeholder="z.B. 1€" class="form-input text-sm"></div>
-              <div><label class="text-xs text-slate-400 mb-1 block">L (€)</label><input type="text" id="einmalzahlungL" name="einmalzahlungL" placeholder="z.B. 29,99€" class="form-input text-sm"></div>
-              <div><label class="text-xs text-slate-400 mb-1 block">M (€)</label><input type="text" id="einmalzahlungM" name="einmalzahlungM" placeholder="z.B. 49,99€" class="form-input text-sm"></div>
-              <div><label class="text-xs text-slate-400 mb-1 block">S (€)</label><input type="text" id="einmalzahlungS" name="einmalzahlungS" placeholder="z.B. 99,99€" class="form-input text-sm"></div>
-            </div>
-          </div>
-          <!-- EZ Home -->
-          <div>
-            <label class="form-label">Einmalzahlung o2 My Home (XL/L/M/S)</label>
-            <div class="form-grid-4">
-              <div><label class="text-xs text-slate-400 mb-1 block">Home XL</label><input type="text" id="einmalzahlungHomeXL" name="einmalzahlungHomeXL" placeholder="z.B. 1€" class="form-input text-sm"></div>
-              <div><label class="text-xs text-slate-400 mb-1 block">Home L</label><input type="text" id="einmalzahlungHomeL" name="einmalzahlungHomeL" placeholder="z.B. 29,99€" class="form-input text-sm"></div>
-              <div><label class="text-xs text-slate-400 mb-1 block">Home M</label><input type="text" id="einmalzahlungHomeM" name="einmalzahlungHomeM" placeholder="z.B. 49,99€" class="form-input text-sm"></div>
-              <div><label class="text-xs text-slate-400 mb-1 block">Home S</label><input type="text" id="einmalzahlungHomeS" name="einmalzahlungHomeS" placeholder="z.B. 99,99€" class="form-input text-sm"></div>
-            </div>
-          </div>
-        </div>
-        <!-- Tarif-Gültigkeit -->
-        <div class="mb-6 pb-5 border-b border-slate-100">
-          <div class="text-sm font-bold text-blue-600 uppercase tracking-wide mb-4">Tarif-Gültigkeit</div>
-          <div class="flex flex-wrap gap-3">
-            <label class="check-label"><input id="mobile" name="mobile" type="checkbox"> o2 Mobile (XL/L/M/S)</label>
-            <label class="check-label"><input id="myhome" name="myhome" type="checkbox"> o2 My Home (XL/L/M/S)</label>
-            <label class="check-label"><input id="data" name="data" type="checkbox"> o2 Data (XL/L/M)</label>
-          </div>
-        </div>
-        <!-- Zusätzliche Infos -->
-        <div class="mb-6 pb-5 border-b border-slate-100">
-          <div class="text-sm font-bold text-blue-600 uppercase tracking-wide mb-4">Zusätzliche Infos</div>
-          <div class="form-grid-3 mb-4">
-            <label class="check-label"><input id="anschlussbefreiung" name="anschlussbefreiung" type="checkbox"> Anschlusspreisbefreiung</label>
-            <label class="check-label"><input id="zusatzpush" name="zusatzpush" type="checkbox"> Zusätzlichen Push</label>
-            <div>
-              <label class="form-label">Sonderprovision</label>
-              <input type="text" id="sonderprovision" name="sonderprovision" placeholder="z.B. +50€" class="form-input">
-            </div>
-          </div>
-          <!-- STÖRER AUSWAHL -->
-          <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-            <div class="form-label mb-3">🎯 Störer / Aufmerksamkeits-Badge (optional)</div>
-            <div class="flex flex-wrap gap-3 mb-3">
-              <button type="button" class="stoerer-btn" id="stoerer-none" onclick="setStoerer('')">
-                <span class="stoerer-preview" style="background:#e2e8f0;color:#64748b">— Kein Störer —</span>
-                <span class="stoerer-label">Keiner</span>
-              </button>
-              <button type="button" class="stoerer-btn" id="stoerer-highlight" onclick="setStoerer('highlight')">
-                <span class="stoerer-preview" style="background:#f59e0b;color:#000">⭐ Highlight</span>
-                <span class="stoerer-label">Highlight Angebot</span>
-              </button>
-              <button type="button" class="stoerer-btn" id="stoerer-flash" onclick="setStoerer('flash')">
-                <span class="stoerer-preview" style="background:#dc2626;color:#fff">⚡ Flash Sale</span>
-                <span class="stoerer-label">Flash Sale</span>
-              </button>
-              <button type="button" class="stoerer-btn" id="stoerer-abverkauf" onclick="setStoerer('abverkauf')">
-                <span class="stoerer-preview" style="background:#7c3aed;color:#fff">🔥 Abverkauf</span>
-                <span class="stoerer-label">Abverkauf</span>
-              </button>
-            </div>
-            <input type="hidden" id="stoerer" name="stoerer" value="">
-            <p class="text-xs text-amber-700">Aktiver Störer erscheint als Ribbon-Ecke auf der Kachel in der Kunden-Ansicht.</p>
-          </div>
-          <div>
-            <label class="form-label">Bemerkungsfeld</label>
-            <textarea id="bemerkung" name="bemerkung" rows="3" class="form-input"></textarea>
-          </div>
-        </div>
-        <!-- Bilder & Links -->
-        <div class="mb-6">
-          <div class="text-sm font-bold text-blue-600 uppercase tracking-wide mb-4">Bilder & Benefits (URLs)</div>
-          <div class="form-grid-3">
-            <div>
-              <label class="form-label">Bild URL (Gerät)</label>
-              <input type="url" id="bildUrl" name="bildUrl" class="form-input">
-            </div>
-            <div>
-              <label class="form-label">HW Benefit 24 Monate (Link)</label>
-              <input type="url" id="hwBenefit24" name="hwBenefit24" class="form-input">
-            </div>
-            <div>
-              <label class="form-label">HW Benefit 36 Monate (Link)</label>
-              <input type="url" id="hwBenefit36" name="hwBenefit36" class="form-input">
-            </div>
-          </div>
-        </div>
-        <button id="submit-btn" type="submit" class="btn btn-primary btn-full">Aktion Speichern</button>
-      </form>
-    </div>
+    <div id="admin-push-list"><p class="ac-empty">Lade Push-Provisionen…</p></div>
   </div>
 
-  <!-- ====== PDF VERWALTUNG ====== -->
-  <div class="admin-section-card" id="pdf-upload-section">
-    <div class="admin-section-header border-b border-slate-100 text-slate-700">
-      <span class="text-lg">📄</span> PDF Aktionsübersicht verwalten
+  <!-- Incentives -->
+  <div class="admin-tab-panel hidden" data-tab-panel="incentives">
+    <div class="ac-bar">
+      <span class="ac-bar-note">Aktionen für Mitarbeiter, ein- und ausblendbar.</span>
+      <button type="button" class="ac-new" onclick="acNew('inc')">+ Neues Incentive</button>
     </div>
-    <div class="admin-section-body">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div class="flex-1">
-          <label class="form-label">Aktuelle o2 Übersicht hochladen (PDF)</label>
-          <input type="file" id="pdf-upload-input" accept="application/pdf" onchange="handlePdfUpload(event)"
-            class="block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
-          <p id="pdf-status-label" class="text-xs text-slate-400 mt-2">Kein PDF ausgewählt</p>
-        </div>
-        <button onclick="deletePdf()" class="btn btn-red btn-sm flex-shrink-0">PDF Löschen</button>
+    <div id="admin-incentive-list"><p class="ac-empty">Lade Incentives…</p></div>
+  </div>
+
+  <!-- Tools -->
+  <div class="admin-tab-panel hidden" data-tab-panel="tools">
+    <div class="ac-tools">
+      <div class="ac-tool" id="pdf-upload-section">
+        <h3>📄 o2 Aktionsübersicht (PDF)</h3>
+        <input type="file" id="pdf-upload-input" accept="application/pdf" onchange="handlePdfUpload(event)" class="ac-file">
+        <p id="pdf-status-label" class="ac-hint">Kein PDF ausgewählt</p>
+        <button onclick="deletePdf()" class="btn btn-ghost btn-sm">PDF entfernen</button>
+        <div id="admin-pdf-preview" class="mt-4"></div>
       </div>
-      <div id="admin-pdf-preview" class="mt-4"></div>
-    </div>
-  </div>
-
-  <!-- ====== DATEN BACKUP ====== -->
-  <div class="admin-section-card" id="data-backup-section">
-    <div class="admin-section-header bg-yellow-50 border-b border-yellow-100 text-yellow-800">
-      <span class="text-lg">💾</span> Daten-Backup & Wiederherstellung
-    </div>
-    <div class="admin-section-body space-y-4">
-      <div class="flex items-center justify-between">
-        <p class="text-sm text-slate-600">Sichern Sie alle eingegebenen Aktionen als JSON-Datei.</p>
-        <button onclick="exportData()" class="btn btn-yellow btn-sm">Daten exportieren (JSON)</button>
-      </div>
-      <div class="border-t border-slate-100 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <label class="form-label mb-0">Daten wiederherstellen (Import)</label>
-        <input type="file" id="import-input" accept="application/json" onchange="importData(event)"
-          class="text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer">
+      <div class="ac-tool" id="data-backup-section">
+        <h3>💾 Backup</h3>
+        <button onclick="exportData()" class="btn btn-primary btn-sm">Alle Daten exportieren (JSON)</button>
+        <label class="ac-lbl" style="margin-top:14px">Backup wiederherstellen</label>
+        <input type="file" id="import-input" accept="application/json" onchange="importData(event)" class="ac-file">
       </div>
     </div>
   </div>
+</div>
 
-  <!-- ====== INCENTIVE VERWALTUNG ====== -->
-  <div class="admin-section-card">
-    <div class="admin-section-header bg-purple-50 border-b border-purple-100 text-purple-800">
-      <span class="text-lg">⭐</span> Incentive Verwaltung
-    </div>
-    <div class="admin-section-body">
-      <form id="incentive-form" onsubmit="saveIncentive(event)" data-editing-id="">
-        <div class="form-grid-2 mb-4">
-          <div style="grid-column:1/-1">
-            <label class="form-label">Titel / Bezeichnung</label>
-            <input type="text" id="incentiveTitel" name="incentiveTitel" placeholder="z.B. Xiaomi Watch Aktion" class="form-input" required>
-          </div>
-          <div>
-            <label class="form-label">Incentive Start</label>
-            <input type="date" id="incentiveStart" name="incentiveStart" class="form-input" required>
-          </div>
-          <div>
-            <label class="form-label">Incentive Ende</label>
-            <input type="date" id="incentiveEnd" name="incentiveEnd" class="form-input" required>
-          </div>
-          <div style="grid-column:1/-1">
-            <label class="form-label">Bild URL</label>
-            <input type="url" id="incentiveBildUrl" name="incentiveBildUrl" class="form-input">
-          </div>
-          <div style="grid-column:1/-1">
-            <label class="form-label">Bemerkung</label>
-            <textarea id="incentiveBemerkung" name="incentiveBemerkung" rows="2" class="form-input" required></textarea>
-          </div>
-          <!-- Sichtbarkeit -->
-          <div style="grid-column:1/-1">
-            <label class="check-label" style="background:#f0fdf4;border-color:#bbf7d0">
-              <input type="checkbox" id="incentiveSichtbar" name="incentiveSichtbar" checked>
-              <span>👁️ In Kunden-Ansicht anzeigen</span>
-            </label>
-            <p class="text-xs text-slate-400 mt-1">Deaktivieren = Incentive wird im Admin gespeichert, aber in der Kunden-Ansicht ausgeblendet.</p>
-          </div>
+<!-- ===== DRAWER ===== -->
+<div id="ac-overlay" class="no-print" onclick="if(event.target===this)acClose()">
+
+  <!-- Geräte-Aktion -->
+  <aside class="ac-drawer" id="dr-promo" aria-label="Geräte-Aktion">
+    <form id="promotion-form" onsubmit="savePromotion(event)" data-editing-id="" novalidate>
+      <header class="ac-head"><h2 class="ac-title">Neue Aktion</h2><button type="button" class="ac-x" onclick="acClose()" aria-label="Schließen">✕</button></header>
+      <div class="ac-body">
+        <label class="ac-lbl">Anbieter</label>
+        <div class="ac-chips" id="ac-anbieter-chips">
+          <button type="button" data-val="o2">o2</button><button type="button" data-val="HeTec">HeTec</button><button type="button" data-val="GreenMnky">GreenMnky</button><button type="button" data-val="DSL">DSL</button><button type="button" data-val="Freiertext">Andere…</button>
         </div>
-        <button id="incentive-submit-btn" type="submit" class="btn btn-purple btn-full">Incentive Speichern</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- ====== ÜBERSICHTEN TABS ====== -->
-  <div class="admin-section-card">
-    <div class="admin-section-header border-b border-slate-100 text-slate-700">
-      <span class="text-lg">📊</span> Übersichten
-      <div class="flex gap-2 ml-auto flex-wrap">
-        <button class="admin-tab" data-tab="push" onclick="setAdminTab('push')">💰 Push <span class="tab-badge" id="admin-tab-count-push">0</span></button>
-        <button class="admin-tab" data-tab="bundle" onclick="setAdminTab('bundle')">📦 Bundles <span class="tab-badge" id="admin-tab-count-bundle">0</span></button>
-        <button class="admin-tab" data-tab="promotions" onclick="setAdminTab('promotions')">📋 Geräte <span class="tab-badge" id="admin-tab-count-promotions">0</span></button>
-        <button class="admin-tab" data-tab="incentives" onclick="setAdminTab('incentives')">⭐ Incentives <span class="tab-badge" id="admin-tab-count-incentives">0</span></button>
-      </div>
-    </div>
-    <div class="admin-section-body">
-      <!-- Push Tab -->
-      <div class="admin-tab-panel" data-tab-panel="push">
-        <div id="admin-push-list"><p class="text-center text-slate-400 py-6">Lade Push-Provisionen…</p></div>
-      </div>
-      <!-- Bundle Tab -->
-      <div class="admin-tab-panel hidden" data-tab-panel="bundle">
-        <div id="admin-bundle-list"><p class="text-center text-slate-400 py-6">Lade Bundles…</p></div>
-      </div>
-      <!-- Promotions Tab -->
-      <div class="admin-tab-panel hidden" data-tab-panel="promotions">
-        <div id="admin-search-container" class="mb-4">
-          <input type="text" id="admin-search" placeholder="Suche (Gerät, Anbieter…)" class="form-input" oninput="filterAdminPromotions()">
+        <select id="anbieterSelect" name="anbieterSelect" onchange="toggleFreeText(null)" class="ac-hidden" tabindex="-1" aria-hidden="true">
+          <option value="" disabled selected>–</option><option value="o2">o2</option><option value="HeTec">HeTec</option><option value="GreenMnky">GreenMnky</option><option value="DSL">DSL</option><option value="Freiertext">Andere / Freier Text</option>
+        </select>
+        <div id="anbieter-freitext-container" class="hidden ac-mt8">
+          <input type="text" id="anbieterFreiertext" name="anbieterFreiertext" placeholder="Anbieter eingeben" class="form-input">
         </div>
-        <div id="admin-promotion-list"><p class="text-center text-slate-400 py-6">Lade Aktionen…</p></div>
-      </div>
-      <!-- Incentives Tab -->
-      <div class="admin-tab-panel hidden" data-tab-panel="incentives">
-        <div id="admin-incentive-list"><p class="text-center text-slate-400 py-6">Lade Incentives…</p></div>
-      </div>
-    </div>
-  </div>
 
+        <label class="ac-lbl" for="geraetebezeichnung">Gerät</label>
+        <input type="text" id="geraetebezeichnung" name="geraetebezeichnung" class="form-input ac-big" placeholder="z. B. iPhone 17 Pro 256 GB">
+
+        <div class="ac-grid2">
+          <div><label class="ac-lbl" for="verkaufspreis">Verkaufspreis €</label>
+            <input type="number" step="0.01" inputmode="decimal" id="verkaufspreis" name="verkaufspreis" class="form-input ac-big">
+            <label class="ac-nv"><input type="checkbox" id="noVerkaufspreis" name="noVerkaufspreis" onchange="togglePriceInput('VK', this.checked)"> kein Preis</label></div>
+          <div><label class="ac-lbl" for="einkaufspreis">Einkaufspreis €</label>
+            <input type="number" step="0.01" inputmode="decimal" id="einkaufspreis" name="einkaufspreis" class="form-input ac-big">
+            <label class="ac-nv"><input type="checkbox" id="noEinkaufspreis" name="noEinkaufspreis" onchange="togglePriceInput('EK', this.checked)"> kein Preis</label></div>
+        </div>
+        <div class="marge-preview-box ac-marge" id="marge-preview">Vorschau Marge: –</div>
+
+        <div class="ac-grid2">
+          <div><label class="ac-lbl" for="aktionsbeginn">Von</label><input type="date" id="aktionsbeginn" name="aktionsbeginn" class="form-input"></div>
+          <div><label class="ac-lbl" for="aktionsende">Bis</label><input type="date" id="aktionsende" name="aktionsende" class="form-input"></div>
+        </div>
+        <div class="ac-chips ac-quick">
+          <button type="button" onclick="acEnd('aktionsende','aktionsbeginn','month')">Monatsende</button>
+          <button type="button" onclick="acEnd('aktionsende','aktionsbeginn',14)">+14 Tage</button>
+          <button type="button" onclick="acEnd('aktionsende','aktionsbeginn',30)">+30 Tage</button>
+          <label class="ac-chipcheck"><input type="checkbox" id="dauerhaftAktiv" name="dauerhaftAktiv" onchange="toggleDauerhaftAktiv(this.checked)"> ♾️ Dauerhaft</label>
+        </div>
+
+        <details class="ac-more">
+          <summary>Einmalzahlungen <span class="ac-sum" data-sum="ez"></span></summary>
+          <div class="ac-sub">o2 Mobile</div>
+          <div class="ac-grid4">
+            <input type="text" id="einmalzahlungXL" name="einmalzahlungXL" placeholder="XL" class="form-input">
+            <input type="text" id="einmalzahlungL" name="einmalzahlungL" placeholder="L" class="form-input">
+            <input type="text" id="einmalzahlungM" name="einmalzahlungM" placeholder="M" class="form-input">
+            <input type="text" id="einmalzahlungS" name="einmalzahlungS" placeholder="S" class="form-input">
+          </div>
+          <div class="ac-sub">o2 My Home</div>
+          <div class="ac-grid4">
+            <input type="text" id="einmalzahlungHomeXL" name="einmalzahlungHomeXL" placeholder="XL" class="form-input">
+            <input type="text" id="einmalzahlungHomeL" name="einmalzahlungHomeL" placeholder="L" class="form-input">
+            <input type="text" id="einmalzahlungHomeM" name="einmalzahlungHomeM" placeholder="M" class="form-input">
+            <input type="text" id="einmalzahlungHomeS" name="einmalzahlungHomeS" placeholder="S" class="form-input">
+          </div>
+        </details>
+
+        <details class="ac-more">
+          <summary>Tarife &amp; Extras <span class="ac-sum" data-sum="extras"></span></summary>
+          <div class="ac-chips">
+            <label class="ac-chipcheck"><input id="mobile" name="mobile" type="checkbox"> o2 Mobile</label>
+            <label class="ac-chipcheck"><input id="myhome" name="myhome" type="checkbox"> o2 My Home</label>
+            <label class="ac-chipcheck"><input id="data" name="data" type="checkbox"> o2 Data</label>
+            <label class="ac-chipcheck"><input id="anschlussbefreiung" name="anschlussbefreiung" type="checkbox"> Anschlusspreis frei</label>
+            <label class="ac-chipcheck"><input id="zusatzpush" name="zusatzpush" type="checkbox"> Zusatz-Push</label>
+          </div>
+          <label class="ac-lbl" for="sonderprovision">Sonderprovision</label>
+          <input type="text" id="sonderprovision" name="sonderprovision" placeholder="z. B. +50 €" class="form-input">
+          <label class="ac-lbl">Störer</label>
+          <div class="ac-stoerer">
+            <button type="button" class="stoerer-btn" id="stoerer-none" onclick="setStoerer('')"><span class="stoerer-label">Keiner</span></button>
+            <button type="button" class="stoerer-btn" id="stoerer-highlight" onclick="setStoerer('highlight')"><span class="stoerer-preview" style="background:#f59e0b;color:#000">⭐ Highlight</span></button>
+            <button type="button" class="stoerer-btn" id="stoerer-flash" onclick="setStoerer('flash')"><span class="stoerer-preview" style="background:#dc2626;color:#fff">⚡ Flash Sale</span></button>
+            <button type="button" class="stoerer-btn" id="stoerer-abverkauf" onclick="setStoerer('abverkauf')"><span class="stoerer-preview" style="background:#7c3aed;color:#fff">🔥 Abverkauf</span></button>
+          </div>
+          <input type="hidden" id="stoerer" name="stoerer" value="">
+        </details>
+
+        <details class="ac-more">
+          <summary>Bild, Links &amp; Notiz <span class="ac-sum" data-sum="links"></span></summary>
+          <label class="ac-lbl" for="bildUrl">Bild-URL</label>
+          <input type="url" id="bildUrl" name="bildUrl" class="form-input" placeholder="https://…">
+          <div class="ac-grid2">
+            <div><label class="ac-lbl" for="hwBenefit24">HW Benefit 24 M</label><input type="url" id="hwBenefit24" name="hwBenefit24" class="form-input" placeholder="Link"></div>
+            <div><label class="ac-lbl" for="hwBenefit36">HW Benefit 36 M</label><input type="url" id="hwBenefit36" name="hwBenefit36" class="form-input" placeholder="Link"></div>
+          </div>
+          <label class="ac-lbl" for="bemerkung">Bemerkung</label>
+          <textarea id="bemerkung" name="bemerkung" rows="3" class="form-input"></textarea>
+        </details>
+      </div>
+      <footer class="ac-foot">
+        <button id="submit-btn" type="submit" class="btn btn-primary" style="order:3">Speichern</button>
+        <button type="submit" class="btn btn-ghost ac-next" data-next="1" style="order:2">Speichern &amp; nächste</button>
+        <button type="button" class="btn btn-ghost" onclick="acClose()" style="order:1">Abbrechen</button>
+      </footer>
+    </form>
+  </aside>
+
+  <!-- Bundle -->
+  <aside class="ac-drawer" id="dr-bundle" aria-label="Bundle">
+    <form id="bundle-form" onsubmit="saveBundle(event)" data-editing-id="" novalidate>
+      <header class="ac-head"><h2 class="ac-title">Bundle</h2><button type="button" class="ac-x" onclick="acClose()" aria-label="Schließen">✕</button></header>
+      <div class="ac-body">
+        <label class="ac-lbl" for="bundleSlot">Slot</label>
+        <select id="bundleSlot" name="bundleSlot" class="form-input" onchange="onBundleSlotChange()"></select>
+        <label class="ac-chipcheck ac-mt8"><input type="checkbox" id="bundleActive" name="bundleActive" checked> 🟢 Aktiv</label>
+
+        <label class="ac-lbl" for="bundleTitel">Titel</label>
+        <input type="text" id="bundleTitel" name="bundleTitel" placeholder="z. B. o2 Mobile M + iPhone 17 + TV" class="form-input ac-big">
+        <label class="ac-lbl" for="bundleTarifName">Tarif</label>
+        <input type="text" id="bundleTarifName" name="bundleTarifName" placeholder="o2 Mobile M" class="form-input">
+
+        <div class="ac-grid3">
+          <div><label class="ac-lbl" for="bundlePreis24">24 M €/Monat</label><input type="text" inputmode="decimal" id="bundlePreis24" name="bundlePreis24" placeholder="49,99" class="form-input ac-big"></div>
+          <div><label class="ac-lbl" for="bundlePreis36">36 M €/Monat</label><input type="text" inputmode="decimal" id="bundlePreis36" name="bundlePreis36" placeholder="44,99" class="form-input ac-big"></div>
+          <div><label class="ac-lbl" for="bundleEinmalkosten">Einmalig €</label><input type="text" inputmode="decimal" id="bundleEinmalkosten" name="bundleEinmalkosten" placeholder="0,00" class="form-input ac-big"></div>
+        </div>
+        <div class="ac-chips ac-quick">
+          <label class="ac-chipcheck"><input type="checkbox" id="bundleShow24" name="bundleShow24" checked> 24 M anzeigen</label>
+          <label class="ac-chipcheck"><input type="checkbox" id="bundleShow36" name="bundleShow36"> 36 M anzeigen</label>
+        </div>
+
+        <div class="ac-grid2">
+          <div><label class="ac-lbl" for="bundleStart">Von</label><input type="date" id="bundleStart" name="bundleStart" class="form-input"></div>
+          <div><label class="ac-lbl" for="bundleEnd">Bis</label><input type="date" id="bundleEnd" name="bundleEnd" class="form-input"></div>
+        </div>
+        <div class="ac-chips ac-quick">
+          <button type="button" onclick="acEnd('bundleEnd','bundleStart','month')">Monatsende</button>
+          <button type="button" onclick="acEnd('bundleEnd','bundleStart',30)">+30 Tage</button>
+        </div>
+
+        <details class="ac-more">
+          <summary>Optionen &amp; Bilder <span class="ac-sum" data-sum="bopt"></span></summary>
+          <div class="ac-chips">
+            <label class="ac-chipcheck"><input type="checkbox" id="bundleHasSim" name="bundleHasSim" checked> 💳 SIM</label>
+            <label class="ac-chipcheck"><input type="checkbox" id="bundleOptionOnlineSchutz" name="bundleOptionOnlineSchutz"> 🛡️ Online Schutz</label>
+            <label class="ac-chipcheck"><input type="checkbox" id="bundleOptionTV" name="bundleOptionTV"> 📺 o2 TV</label>
+          </div>
+          <input type="text" id="bundleOptionCustom" name="bundleOptionCustom" placeholder="Weitere Option (z. B. Netflix)" class="form-input ac-mt8">
+          <label class="ac-lbl">Bild-URLs</label>
+          <div id="bundle-images-container" class="space-y-2 mb-2"></div>
+          <button type="button" onclick="addBundleImageField()" class="btn btn-ghost btn-sm">+ Bild</button>
+        </details>
+
+        <details class="ac-more">
+          <summary>Link, Gutschein &amp; Buchung <span class="ac-sum" data-sum="blink"></span></summary>
+          <label class="ac-lbl" for="bundleShopLink">Shop-Link</label>
+          <input type="url" id="bundleShopLink" name="bundleShopLink" placeholder="https://…" class="form-input">
+          <label class="ac-lbl" for="bundleGutschein">Gutscheincode</label>
+          <input type="text" id="bundleGutschein" name="bundleGutschein" placeholder="z. B. SOMMER25" class="form-input">
+          <label class="ac-lbl" for="bundleRechnungsweg">Rechnungsweg &amp; Buchung</label>
+          <textarea id="bundleRechnungsweg" name="bundleRechnungsweg" rows="4" class="form-input" placeholder="Buchungsprozess: …"></textarea>
+        </details>
+      </div>
+      <footer class="ac-foot">
+        <button type="button" class="btn btn-ghost" onclick="acClose()">Abbrechen</button>
+        <button id="bundle-submit-btn" type="submit" class="btn btn-primary">Speichern</button>
+      </footer>
+    </form>
+  </aside>
+
+  <!-- Push -->
+  <aside class="ac-drawer" id="dr-push" aria-label="Push">
+    <form id="push-form" onsubmit="savePushProvision(event)" data-editing-id="" novalidate>
+      <header class="ac-head"><h2 class="ac-title">Neuer Push</h2><button type="button" class="ac-x" onclick="acClose()" aria-label="Schließen">✕</button></header>
+      <div class="ac-body">
+        <label class="ac-lbl" for="pushTitel">Titel</label>
+        <input type="text" id="pushTitel" name="pushTitel" placeholder="z. B. Black Friday Push" class="form-input ac-big">
+        <label class="ac-lbl" for="pushBetrag">Betrag €</label>
+        <input type="number" step="0.01" inputmode="decimal" id="pushBetrag" name="pushBetrag" placeholder="30" class="form-input ac-big">
+        <div class="ac-grid2">
+          <div><label class="ac-lbl" for="pushStart">Von</label><input type="date" id="pushStart" name="pushStart" class="form-input"></div>
+          <div><label class="ac-lbl" for="pushEnd">Bis</label><input type="date" id="pushEnd" name="pushEnd" class="form-input"></div>
+        </div>
+        <div class="ac-chips ac-quick">
+          <button type="button" onclick="acEnd('pushEnd','pushStart','month')">Monatsende</button>
+          <button type="button" onclick="acEnd('pushEnd','pushStart',7)">+7 Tage</button>
+          <button type="button" onclick="acEnd('pushEnd','pushStart',30)">+30 Tage</button>
+        </div>
+        <label class="ac-lbl" for="pushBemerkung">Was gibt es extra?</label>
+        <textarea id="pushBemerkung" name="pushBemerkung" class="form-input" rows="3"></textarea>
+      </div>
+      <footer class="ac-foot">
+        <button type="button" class="btn btn-ghost" onclick="acClose()">Abbrechen</button>
+        <button id="push-submit-btn" type="submit" class="btn btn-primary">Speichern</button>
+      </footer>
+    </form>
+  </aside>
+
+  <!-- Incentive -->
+  <aside class="ac-drawer" id="dr-inc" aria-label="Incentive">
+    <form id="incentive-form" onsubmit="saveIncentive(event)" data-editing-id="" novalidate>
+      <header class="ac-head"><h2 class="ac-title">Neues Incentive</h2><button type="button" class="ac-x" onclick="acClose()" aria-label="Schließen">✕</button></header>
+      <div class="ac-body">
+        <label class="ac-lbl" for="incentiveTitel">Titel</label>
+        <input type="text" id="incentiveTitel" name="incentiveTitel" placeholder="z. B. Xiaomi Watch Aktion" class="form-input ac-big">
+        <div class="ac-grid2">
+          <div><label class="ac-lbl" for="incentiveStart">Von</label><input type="date" id="incentiveStart" name="incentiveStart" class="form-input"></div>
+          <div><label class="ac-lbl" for="incentiveEnd">Bis</label><input type="date" id="incentiveEnd" name="incentiveEnd" class="form-input"></div>
+        </div>
+        <div class="ac-chips ac-quick">
+          <button type="button" onclick="acEnd('incentiveEnd','incentiveStart','month')">Monatsende</button>
+          <button type="button" onclick="acEnd('incentiveEnd','incentiveStart',30)">+30 Tage</button>
+          <label class="ac-chipcheck"><input type="checkbox" id="incentiveSichtbar" name="incentiveSichtbar" checked> 👁️ Sichtbar</label>
+        </div>
+        <label class="ac-lbl" for="incentiveBemerkung">Beschreibung</label>
+        <textarea id="incentiveBemerkung" name="incentiveBemerkung" rows="3" class="form-input"></textarea>
+        <label class="ac-lbl" for="incentiveBildUrl">Bild-URL</label>
+        <input type="url" id="incentiveBildUrl" name="incentiveBildUrl" class="form-input" placeholder="https://…">
+      </div>
+      <footer class="ac-foot">
+        <button type="button" class="btn btn-ghost" onclick="acClose()">Abbrechen</button>
+        <button id="incentive-submit-btn" type="submit" class="btn btn-primary">Speichern</button>
+      </footer>
+    </form>
+  </aside>
+</div>
 </section><!-- /admin-view -->
 
 <!-- ===== USER VIEW ===== -->
@@ -1512,7 +1445,7 @@ window.revealBlur = (el, ev) => {
 window.togglePriceInput = (type,checked) => {
   const id=type==='EK'?'einkaufspreis':'verkaufspreis';
   const el=document.getElementById(id); if(!el)return;
-  el.value=''; el.disabled=checked;
+  if(checked) el.value=''; el.disabled=checked;
   updateMarginPreview();
 };
 
@@ -1939,7 +1872,7 @@ function renderAdminPushList(list){
     const bd=p.betrag>0?`${p.betrag.toFixed(2)} €`:'Betrag n.A.';
     return`<div class="list-item ${exp?'list-item-border-red':'list-item-border-green'}">
       <div><div class="font-semibold text-slate-800 text-sm">Push: ${esc(p.titel||'Extra')} (${bd}) ${exp?'<span class="badge badge-red ml-1">ABGELAUFEN</span>':''}</div><div class="text-xs text-slate-400 mt-0.5">Zeitraum: ${esc(p.start)} bis ${esc(p.end)}</div></div>
-      <div class="flex gap-2 flex-shrink-0"><button onclick='editPushProvision("${p.id}")' class="btn btn-yellow btn-sm">Bearbeiten</button><button onclick='deletePushProvision("${p.id}")' class="btn btn-red btn-sm">Löschen</button></div>
+      <div class="flex gap-2 flex-shrink-0"><button onclick='editPushProvision("${p.id}")' class="btn btn-primary btn-sm">Bearbeiten</button><button onclick='deletePushProvision("${p.id}")' class="btn btn-ghost btn-sm" title="Löschen">🗑️</button></div>
     </div>`;
   }).join('');
 }
@@ -1956,7 +1889,7 @@ function renderAdminBundleList(list){
     const cat=b.categoryLabel||__getCategoryLabel(b.categoryKey);
     return`<div class="list-item ${exp?'list-item-border-red':'list-item-border-navy'}">
       <div><div class="flex flex-wrap items-center gap-2 mb-1"><span class="font-bold text-blue-900 text-sm">📦 ${esc(b.titel||'(leer)')} ${exp?'<span class="badge badge-red">ABGELAUFEN</span>':''}</span><span class="badge ${b.active?'badge-green':'badge-gray'}">${b.active?'AKTIV':'INAKTIV'}</span><span class="badge badge-blue">${esc(cat)}</span><span class="badge badge-gray">ID: ${b.id}</span></div><div class="text-xs text-slate-500">Tarif: ${esc(b.tarifName||'-')} | Preis: ${esc(b.angebotspreis||'-')} € | ${esc(b.start||'-')} – ${esc(b.end||'-')}</div></div>
-      <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end"><button onclick='copyBundleLink("${b.id}")' class="btn btn-ghost btn-sm">🔗 Link</button><button onclick='editBundle("${b.id}")' class="btn btn-yellow btn-sm">Bearbeiten</button><button onclick='toggleBundleActive("${b.id}")' class="btn btn-sm ${b.active?'btn-ghost':'btn-green'}">${b.active?'Deaktivieren':'Aktivieren'}</button></div>
+      <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end"><button onclick='copyBundleLink("${b.id}")' class="btn btn-ghost btn-sm">🔗 Link</button><button onclick='editBundle("${b.id}")' class="btn btn-primary btn-sm">Bearbeiten</button><button onclick='toggleBundleActive("${b.id}")' class="btn btn-sm ${b.active?'btn-ghost':'btn-green'}">${b.active?'Deaktivieren':'Aktivieren'}</button></div>
     </div>`;
   }).join('');
   el.innerHTML=html;
@@ -1986,7 +1919,7 @@ function renderAdminPromotionList(list){
       })();
     return`<div class="list-item ${exp?'list-item-border-red':'list-item-border-blue'}">
       <div><div class="font-semibold text-slate-800 text-sm flex flex-wrap items-center gap-2">${esc(p.geraetebezeichnung)} (${esc(p.anbieter)}) ${exp?'<span class="badge badge-red">ABGELAUFEN</span>':''} ${p.dauerhaftAktiv?'<span class="badge badge-green">♾️ Dauerhaft aktiv</span>':''} ${stoererPill} ${condPillsAdmin}</div><div class="text-xs text-slate-500 mt-0.5">EK: ${ek} | VK: ${vk} | Marge: ${mDisp}</div>${ez?`<div class="text-xs text-slate-400 mt-0.5">EZ Mobile: ${esc(ez)}</div>`:''}<div class="text-xs text-slate-400">${esc(p.aktionsbeginn)}${p.dauerhaftAktiv?' – läuft dauerhaft':` bis ${esc(p.aktionsende)}`}</div></div>
-      <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">${exp?`<button onclick='renewPromotion("${p.id}")' class="btn btn-purple btn-sm">30 Tage verlängern</button>`:`<button onclick='editPromotion("${p.id}")' class="btn btn-yellow btn-sm">Bearbeiten</button>`}<button onclick='deletePromotion("${p.id}")' class="btn btn-red btn-sm">Löschen</button></div>
+      <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">${exp?`<button onclick='renewPromotion("${p.id}")' class="btn btn-purple btn-sm">+30 Tage</button>`:''}<button onclick='editPromotion("${p.id}")' class="btn btn-primary btn-sm">Bearbeiten</button><button onclick='acDuplicatePromotion("${p.id}")' class="btn btn-ghost btn-sm">Kopieren</button><button onclick='deletePromotion("${p.id}")' class="btn btn-ghost btn-sm" title="Löschen">🗑️</button></div>
     </div>`;
   }).join('');
 }
@@ -2002,8 +1935,8 @@ function renderAdminIncentiveList(list){
       <div><div class="font-semibold text-slate-800 text-sm flex flex-wrap items-center gap-2">${esc(p.titel||'Incentive')} ${exp?'<span class="badge badge-red">ABGELAUFEN</span>':''} <span class="badge ${sichtbar?'badge-green':'badge-gray'}">${sichtbar?'👁️ Sichtbar':'🚫 Ausgeblendet'}</span></div><div class="text-xs text-slate-500 mt-0.5">${esc((p.bemerkung||'').substring(0,60))}${(p.bemerkung||'').length>60?'…':''}</div><div class="text-xs text-slate-400">Laufzeit: ${esc(p.incentiveStart)} bis ${esc(p.incentiveEnd)}</div></div>
       <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">
         <button onclick='toggleIncentiveSichtbar("${p.id}")' class="btn btn-sm ${sichtbar?'btn-ghost':'btn-green'}">${sichtbar?'Ausblenden':'Einblenden'}</button>
-        ${exp?`<button onclick='renewIncentive("${p.id}")' class="btn btn-purple btn-sm">30 Tage verlängern</button>`:`<button onclick='editIncentive("${p.id}")' class="btn btn-yellow btn-sm">Bearbeiten</button>`}
-        <button onclick='deleteIncentive("${p.id}")' class="btn btn-red btn-sm">Löschen</button>
+        ${exp?`<button onclick='renewIncentive("${p.id}")' class="btn btn-purple btn-sm">+30 Tage</button>`:''}<button onclick='editIncentive("${p.id}")' class="btn btn-primary btn-sm">Bearbeiten</button>
+        <button onclick='deleteIncentive("${p.id}")' class="btn btn-ghost btn-sm" title="Löschen">🗑️</button>
       </div>
     </div>`;
   }).join('');
@@ -2398,9 +2331,9 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Init tabs
   try{
-    const saved=sessionStorage.getItem('ADMIN_ACTIVE_TAB')||'push';
+    const saved=sessionStorage.getItem('ADMIN_ACTIVE_TAB')||'promotions';
     setAdminTab(saved);
-  }catch(e){setAdminTab('push');}
+  }catch(e){setAdminTab('promotions');}
 
   // Load data
   try{loadData();}catch(e){console.warn(e);}
@@ -3427,6 +3360,199 @@ document.addEventListener('DOMContentLoaded',()=>{
   };
 })();
 </script>
-<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js');});}</script>
+<script>
+/* ===== ADMIN-CENTER: Drawer, Schnellauswahl, Validierung ===== */
+(function(){
+  const $=id=>document.getElementById(id);
+  const DR={
+    promo :{d:'dr-promo', f:'promotion-form',btn:'submit-btn'},
+    bundle:{d:'dr-bundle',f:'bundle-form',   btn:'bundle-submit-btn'},
+    push  :{d:'dr-push',  f:'push-form',     btn:'push-submit-btn'},
+    inc   :{d:'dr-inc',   f:'incentive-form',btn:'incentive-submit-btn'}
+  };
+  let cur=null;
+  const pad=n=>String(n).padStart(2,'0');
+  const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const today=()=>iso(new Date());
+  const parse=s=>s?new Date(s+'T12:00:00'):new Date();
+  const monthEnd=s=>{const d=parse(s);return iso(new Date(d.getFullYear(),d.getMonth()+1,0));};
+  const isDesktop=()=>window.matchMedia('(min-width:641px)').matches;
+
+  // ---- Datum-Schnellwahl ----
+  window.acEnd=(endId,startId,mode)=>{
+    const s=$(startId)?$(startId).value:'';
+    let v; if(mode==='month')v=monthEnd(s); else{const d=parse(s);d.setDate(d.getDate()+mode);v=iso(d);}
+    if(endId==='aktionsende'){const c=$('dauerhaftAktiv');if(c&&c.checked){c.checked=false;toggleDauerhaftAktiv(false);}}
+    const e=$(endId);if(!e)return;e.value=v;e.classList.remove('ac-err');
+  };
+
+  // ---- Anbieter-Chips ----
+  function syncChips(){const v=$('anbieterSelect').value;document.querySelectorAll('#ac-anbieter-chips button').forEach(b=>b.classList.toggle('on',b.dataset.val===v));}
+  function setAnbieter(v){$('anbieterSelect').value=v;toggleFreeText(null);syncChips();}
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('#ac-anbieter-chips button');
+    if(b){setAnbieter(b.dataset.val);$('ac-anbieter-chips').classList.remove('ac-err');if(b.dataset.val==='Freiertext')$('anbieterFreiertext').focus();return;}
+    // Klick auf Listeneintrag = bearbeiten
+    const info=e.target.closest('#admin-view .list-item > div:first-child');
+    if(info){const eb=info.parentElement.querySelector('button[onclick*="edit"]');if(eb)eb.click();}
+  });
+
+  // ---- Zusammenfassung in eingeklappten Bereichen ----
+  function filled(el){
+    if(el.type==='hidden')return !!el.value;
+    if(el.type==='checkbox')return el.checked&&el.id!=='bundleHasSim';
+    if(el.type==='file'||el.tagName==='BUTTON')return false;
+    return String(el.value||'').trim()!=='';
+  }
+  function updateSums(root){
+    (root||document).querySelectorAll('.ac-more').forEach(d=>{
+      const n=[...d.querySelectorAll('input,textarea,select')].filter(filled).length;
+      const s=d.querySelector('.ac-sum');if(s)s.textContent=n?`${n} ausgefüllt`:'';
+    });
+  }
+  function openFilled(root){root.querySelectorAll('.ac-more').forEach(d=>{d.open=[...d.querySelectorAll('input,textarea,select')].some(filled);});updateSums(root);}
+  document.addEventListener('input',e=>{if(e.target.classList)e.target.classList.remove('ac-err');const d=e.target.closest&&e.target.closest('.ac-drawer');if(d)updateSums(d);});
+  document.addEventListener('change',e=>{const d=e.target.closest&&e.target.closest('.ac-drawer');if(d)updateSums(d);});
+
+  // ---- Öffnen / Schließen ----
+  function open(key,title,isEdit){
+    cur=key;const c=DR[key];
+    document.querySelectorAll('.ac-drawer').forEach(x=>x.classList.toggle('open',x.id===c.d));
+    const dr=$(c.d);
+    dr.querySelector('.ac-title').textContent=title;
+    const btn=$(c.btn);if(btn)btn.textContent=isEdit?'Änderungen speichern':'Speichern';
+    const nx=dr.querySelector('.ac-next');if(nx)nx.style.display=isEdit?'none':'';
+    dr.querySelectorAll('.ac-err').forEach(x=>x.classList.remove('ac-err'));
+    if(key==='promo'){syncChips();try{updateMarginPreview();}catch(e){}}
+    openFilled(dr);
+    const ov=$('ac-overlay');requestAnimationFrame(()=>ov.classList.add('open'));
+    document.body.style.overflow='hidden';
+    dr.querySelector('.ac-body').scrollTop=0;
+    if(isDesktop())setTimeout(()=>{const t=dr.querySelector('.ac-body input.ac-big:not([disabled])');if(t)t.focus();},240);
+  }
+  window.acClose=()=>{
+    const ov=$('ac-overlay');ov.classList.remove('open');document.body.style.overflow='';cur=null;
+    setTimeout(()=>{if(!ov.classList.contains('open'))document.querySelectorAll('.ac-drawer').forEach(x=>x.classList.remove('open'));},240);
+  };
+
+  // ---- Neu anlegen (mit sinnvollen Vorgaben) ----
+  window.acNew=key=>{
+    if(key==='promo'){
+      const f=$('promotion-form');f.reset();delete f.dataset.editingId;
+      setStoerer('');togglePriceInput('EK',false);togglePriceInput('VK',false);toggleDauerhaftAktiv(false);
+      let last='o2';try{last=localStorage.getItem('AC_LAST_ANBIETER')||'o2';}catch(e){}
+      if(last==='Freiertext')last='o2';
+      setAnbieter(last);
+      f.aktionsbeginn.value=today();f.aktionsende.value=monthEnd();
+      open('promo','Neue Aktion',false);
+    }else if(key==='push'){
+      const f=$('push-form');f.reset();delete f.dataset.editingId;
+      f.pushStart.value=today();f.pushEnd.value=monthEnd();
+      open('push','Neuer Push',false);
+    }else if(key==='inc'){
+      const f=$('incentive-form');f.reset();delete f.dataset.editingId;
+      f.incentiveStart.value=today();f.incentiveEnd.value=monthEnd();
+      open('inc','Neues Incentive',false);
+    }else if(key==='bundle'){
+      try{populateBundleSlotOptions();}catch(e){}
+      const slots=(typeof FIXED_BUNDLE_SLOTS!=='undefined')?FIXED_BUNDLE_SLOTS:[];
+      const list=(typeof bundles!=='undefined')?bundles:[];
+      const free=slots.find(s=>{const b=list.find(x=>String(x.id)===String(s.id));return !b||!b.titel;});
+      if(!free){showMessage('Alle Slots belegt – bitte einen Slot in der Liste bearbeiten.',true);return;}
+      $('bundleSlot').value=free.id;loadBundleSlotIntoForm(free.id);
+      $('bundleActive').checked=true;
+      const f=$('bundle-form');
+      if(!f.bundleStart.value)f.bundleStart.value=today();
+      if(!f.bundleEnd.value)f.bundleEnd.value=monthEnd();
+      open('bundle','Bundle-Slot füllen',false);
+    }
+  };
+
+  // ---- Bearbeiten -> Drawer ----
+  function wrapEdit(fn,key,title){
+    const o=window[fn];if(typeof o!=='function')return;
+    window[fn]=function(){
+      const y=window.scrollY;const r=o.apply(this,arguments);
+      window.scrollTo({top:y,left:0,behavior:'instant'});
+      open(key,title,true);return r;
+    };
+  }
+  wrapEdit('editPromotion','promo','Aktion bearbeiten');
+  wrapEdit('editBundle','bundle','Bundle bearbeiten');
+  wrapEdit('editPushProvision','push','Push bearbeiten');
+  wrapEdit('editIncentive','inc','Incentive bearbeiten');
+
+  // Slot-Wechsel im Drawer: Button-Text + Bereiche aktualisieren
+  const oLoad=window.loadBundleSlotIntoForm;
+  if(typeof oLoad==='function'){
+    window.loadBundleSlotIntoForm=function(){
+      const r=oLoad.apply(this,arguments);
+      const b=$('bundle-submit-btn');if(b)b.textContent='Speichern';
+      const dr=$('dr-bundle');if(dr&&dr.classList.contains('open'))openFilled(dr);
+      return r;
+    };
+  }
+
+  // Kopieren
+  window.acDuplicatePromotion=id=>{
+    window.editPromotion(id);
+    const f=$('promotion-form');delete f.dataset.editingId;
+    $('dr-promo').querySelector('.ac-title').textContent='Aktion kopieren';
+    $('submit-btn').textContent='Als neue Aktion speichern';
+    setTimeout(()=>{const g=f.geraetebezeichnung;g.focus();g.select();},250);
+  };
+
+  // ---- Speichern: Pflichtfelder prüfen, bei Erfolg schließen ----
+  function wrapSave(fn,key,req){
+    const o=window[fn];if(typeof o!=='function')return;
+    window[fn]=function(ev){
+      const form=ev.target;const submitter=ev.submitter;
+      form.querySelectorAll('.ac-err').forEach(e=>e.classList.remove('ac-err'));
+      const miss=req.filter(id=>{const el=$(id);return el&&!el.disabled&&!String(el.value||'').trim();});
+      let chipsMissing=false;
+      if(key==='promo'){
+        if(!$('anbieterSelect').value)chipsMissing=true;
+        if(!$('dauerhaftAktiv').checked&&!$('aktionsende').value)miss.push('aktionsende');
+        if(!$('noVerkaufspreis').checked&&!$('verkaufspreis').value)miss.push('verkaufspreis');
+        if(!$('noEinkaufspreis').checked&&!$('einkaufspreis').value)miss.push('einkaufspreis');
+      }
+      if(miss.length||chipsMissing){
+        ev.preventDefault();
+        if(chipsMissing)$('ac-anbieter-chips').classList.add('ac-err');
+        miss.forEach(id=>$(id).classList.add('ac-err'));
+        const el=miss.length?$(miss[0]):null;
+        if(el){const d=el.closest('details');if(d)d.open=true;el.focus();}
+        showMessage('Bitte die rot markierten Felder ausfüllen.',true);return;
+      }
+      const keep=key==='promo'?{a:$('anbieterSelect').value,ft:$('anbieterFreiertext').value,s:$('aktionsbeginn').value,e:$('aktionsende').value,d:$('dauerhaftAktiv').checked}:null;
+      let err=false;const sm=window.showMessage;
+      window.showMessage=function(m,e){if(e)err=true;return sm.apply(this,arguments);};
+      try{o.apply(this,arguments);}finally{window.showMessage=sm;}
+      if(err)return;
+      if(keep){try{localStorage.setItem('AC_LAST_ANBIETER',keep.a);}catch(e){}}
+      if(keep&&submitter&&submitter.dataset.next){
+        acNew('promo');
+        setAnbieter(keep.a);if(keep.a==='Freiertext')$('anbieterFreiertext').value=keep.ft;
+        $('aktionsbeginn').value=keep.s;$('aktionsende').value=keep.e;
+        $('dauerhaftAktiv').checked=keep.d;toggleDauerhaftAktiv(keep.d);
+        setTimeout(()=>$('geraetebezeichnung').focus(),60);
+        return;
+      }
+      acClose();
+    };
+  }
+  wrapSave('savePromotion','promo',['geraetebezeichnung','aktionsbeginn']);
+  wrapSave('savePushProvision','push',['pushBetrag','pushStart','pushEnd']);
+  wrapSave('saveIncentive','inc',['incentiveTitel','incentiveStart','incentiveEnd']);
+  wrapSave('saveBundle','bundle',['bundleTitel']);
+
+  // ---- Tastatur: Esc schließt, Strg/Cmd+Enter speichert ----
+  document.addEventListener('keydown',e=>{
+    if(!cur)return;
+    if(e.key==='Escape'){e.preventDefault();acClose();}
+    else if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();const c=DR[cur];$(c.f).requestSubmit($(c.btn));}
+  });
+})();
+</script>
 </body>
 </html>
