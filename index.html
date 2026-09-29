@@ -1,0 +1,3432 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aktionsmappen-Dashboard · HeTec GmbH</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2C3E50">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aktionsmappe">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+/* ===== BASE ===== */
+*, *::before, *::after { box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: #f1f5f9; color: #1e293b; margin: 0; min-height: 100vh; }
+
+/* ===== TOGGLE SWITCH ===== */
+.toggle-wrap input:checked + .slider { background-color: #2563eb; }
+.toggle-wrap input:checked + .slider::before { transform: translateX(26px); }
+.slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#cbd5e1; border-radius:34px; transition:.3s; }
+.slider::before { position:absolute; content:''; height:22px; width:22px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.3s; }
+
+/* ===== ADMIN SECTION CARDS ===== */
+.admin-section-card { background:white; border-radius:16px; box-shadow:0 1px 12px rgba(0,0,0,0.06); border:1px solid #e2e8f0; overflow:hidden; }
+.admin-section-header { padding:16px 22px; font-size:15px; font-weight:700; display:flex; align-items:center; gap:10px; }
+.admin-section-body { padding:24px; }
+
+/* ===== FORM FIELDS ===== */
+.form-label { display:block; font-size:12px; font-weight:600; color:#475569; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px; }
+.form-input { width:100%; padding:10px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px; font-family:'Inter',sans-serif; color:#0f172a; background:white; transition:border-color .15s, box-shadow .15s; outline:none; }
+.form-input:focus { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.12); }
+.form-input[disabled] { background:#f8fafc; color:#94a3b8; cursor:not-allowed; }
+select.form-input { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:32px; }
+textarea.form-input { resize:vertical; min-height:80px; }
+
+/* ===== CHECKBOXES ===== */
+.check-label { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:500; color:#374151; padding:8px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; transition:background .12s; }
+.check-label:hover { background:#f1f5f9; }
+.check-label input[type=checkbox] { width:16px; height:16px; accent-color:#2563eb; flex-shrink:0; cursor:pointer; }
+
+/* ===== BUTTONS ===== */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 18px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; font-family:'Inter',sans-serif; transition:all .15s; }
+.btn-primary { background:#1d4ed8; color:white; }
+.btn-primary:hover { background:#1e40af; }
+.btn-green { background:#16a34a; color:white; }
+.btn-green:hover { background:#15803d; }
+.btn-navy { background:#1e3a8a; color:white; }
+.btn-navy:hover { background:#1e40af; }
+.btn-purple { background:#7c3aed; color:white; }
+.btn-purple:hover { background:#6d28d9; }
+.btn-yellow { background:#d97706; color:white; }
+.btn-yellow:hover { background:#b45309; }
+.btn-red { background:#dc2626; color:white; }
+.btn-red:hover { background:#b91c1c; }
+.btn-ghost { background:#f1f5f9; color:#374151; border:1px solid #e2e8f0; }
+.btn-ghost:hover { background:#e2e8f0; }
+.btn-sm { padding:6px 12px; font-size:12px; border-radius:6px; }
+.btn-full { width:100%; }
+
+/* ===== ADMIN TABS ===== */
+.admin-tab { padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid #e2e8f0; background:white; color:#475569; transition:all .12s; font-family:'Inter',sans-serif; }
+.admin-tab:hover { background:#f8fafc; }
+.admin-tab.active { background:#0f172a; color:white; border-color:#0f172a; }
+.admin-tab.active .tab-badge { background:rgba(255,255,255,.15); color:white; border-color:rgba(255,255,255,.2); }
+.tab-badge { display:inline-block; margin-left:6px; padding:1px 8px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:100px; font-size:11px; font-weight:700; }
+
+/* ===== OVERVIEW LIST ITEMS ===== */
+.list-item { background:white; border-radius:10px; padding:14px 16px; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.list-item + .list-item { margin-top:8px; }
+.list-item-border-green { border-left:4px solid #22c55e; }
+.list-item-border-red { border-left:4px solid #ef4444; }
+.list-item-border-blue { border-left:4px solid #3b82f6; }
+.list-item-border-navy { border-left:4px solid #1e3a8a; }
+.list-item-border-purple { border-left:4px solid #a855f7; }
+
+/* ===== STATUS BADGE ===== */
+.badge { display:inline-block; padding:2px 10px; border-radius:100px; font-size:11px; font-weight:700; }
+.badge-green { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
+.badge-gray { background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; }
+.badge-red { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
+.badge-blue { background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; }
+.badge-yellow { background:#fef9c3; color:#854d0e; border:1px solid #fde68a; }
+
+/* ===== STATUS MESSAGE ===== */
+#status-msg { position:fixed; top:80px; right:20px; z-index:9999; padding:12px 20px; border-radius:10px; font-size:14px; font-weight:600; box-shadow:0 4px 20px rgba(0,0,0,0.15); transition:all .3s; display:none; max-width:380px; }
+#status-msg.success { background:#16a34a; color:white; display:block; }
+#status-msg.error { background:#dc2626; color:white; display:block; }
+
+/* ===== EK/MARGE: MILCHIG BIS KLICK (Kundenansicht) ===== */
+/* Standard: EK und Marge sind einzeln verwischt ("milchig"). Tippen => scharf. */
+.blurbox { position:relative; cursor:pointer; -webkit-user-select:none; user-select:none; }
+.blurbox > .blur-val { filter:blur(6px); transition:filter .18s ease; }
+.blurbox.revealed > .blur-val { filter:none; }
+/* dezenter Hinweis-Punkt, dass man tippen kann */
+.blurbox:not(.revealed)::after {
+  content:"👁"; position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%); font-size:12px; opacity:.55; pointer-events:none;
+}
+/* Im Druck immer verwischt (interne Zahlen nicht im Kundenausdruck) */
+@media print { .blurbox > .blur-val { filter:blur(6px) !important; } .blurbox::after{ display:none; } }
+
+/* ===== STÖRER / RIBBON BADGES ===== */
+.stoerer-ribbon {
+  position: absolute;
+  top: 0; left: 0;
+  z-index: 10;
+  overflow: hidden;
+  width: 90px; height: 90px;
+  pointer-events: none;
+}
+.stoerer-ribbon span {
+  position: absolute;
+  display: block;
+  width: 120px;
+  padding: 6px 0;
+  font-size: 10px;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transform: rotate(-45deg);
+  top: 18px; left: -28px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.stoerer-ribbon.highlight span { background: #f59e0b; color: #000; }
+.stoerer-ribbon.flash span    { background: #dc2626; color: #fff; }
+.stoerer-ribbon.abverkauf span { background: #7c3aed; color: #fff; }
+
+/* Puls-Animation für Flash Sale */
+@keyframes flash-pulse {
+  0%,100% { opacity:1; }
+  50% { opacity:.75; }
+}
+.stoerer-ribbon.flash { animation: flash-pulse 1.5s infinite; }
+
+/* Störer-Auswahl im Admin */
+.stoerer-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 16px; border-radius: 10px; cursor: pointer;
+  border: 2px solid transparent; transition: all .15s;
+  font-family: 'Inter', sans-serif;
+  background: #f8fafc;
+}
+.stoerer-btn:hover { transform: translateY(-1px); }
+.stoerer-btn.active-highlight { border-color: #f59e0b; background: #fef3c7; }
+.stoerer-btn.active-flash     { border-color: #dc2626; background: #fee2e2; }
+.stoerer-btn.active-abverkauf { border-color: #7c3aed; background: #ede9fe; }
+.stoerer-btn .stoerer-preview {
+  font-size: 10px; font-weight: 900; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 100px; letter-spacing: .05em;
+}
+.stoerer-btn .stoerer-label { font-size: 12px; font-weight: 600; color: #374151; }
+.promo-card { background:white; border-radius:14px; box-shadow:0 2px 16px rgba(0,0,0,0.07); border:1px solid #e2e8f0; overflow:hidden; display:flex; flex-direction:column; break-inside:avoid; }
+.promo-card-img { height:160px; background:#f8fafc; display:flex; align-items:center; justify-content:center; padding:16px; position:relative; border-bottom:1px solid #f1f5f9; }
+.promo-card-img img { max-width:100%; max-height:100%; object-fit:contain; }
+.promo-vk-badge { position:absolute; top:10px; right:10px; background:#dc2626; color:white; font-size:11px; font-weight:800; padding:3px 10px; border-radius:100px; }
+.promo-card-body { padding:16px; flex:1; display:flex; flex-direction:column; }
+
+/* ===== ADMIN PANEL BUTTON ===== */
+.admin-panel-btn {
+  padding:7px 14px; border-radius:9px; font-size:13px; font-weight:700;
+  background:#0f172a; color:#fff; border:1px solid #0f172a; cursor:pointer;
+  font-family:'Inter',sans-serif; white-space:nowrap; transition:all .12s;
+}
+.admin-panel-btn:hover { background:#1d4ed8; border-color:#1d4ed8; }
+.admin-panel-btn.panel-open { background:#dc2626; border-color:#dc2626; }
+.admin-panel-btn.panel-open:hover { background:#b91c1c; }
+
+/* ===== ADMIN HINWEIS-BALKEN ===== */
+#qp-admin-hint { display:none; }
+body.qp-admin #qp-admin-hint {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  background:linear-gradient(90deg,#0f172a,#1d4ed8); color:#fff;
+  border-radius:12px; padding:11px 16px; margin-bottom:18px;
+  font-size:13px; font-weight:600; box-shadow:0 2px 12px rgba(29,78,216,.25);
+}
+#qp-admin-hint .qp-hint-pill {
+  background:rgba(255,255,255,.18); border-radius:100px; padding:2px 10px;
+  font-size:11px; font-weight:700;
+}
+@media print { .admin-panel-btn, #qp-admin-hint { display:none !important; } }
+
+/* ===== QUICK PRICE EDIT (Admin) ===== */
+.qp-edit-btn {
+  position:absolute; top:8px; left:8px; z-index:25;
+  width:34px; height:34px; border-radius:10px;
+  background:#0f172a; color:#fff; border:2px solid #fff;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+  display:none; align-items:center; justify-content:center;
+  font-size:15px; cursor:pointer; padding:0; line-height:1;
+  transition:transform .12s, background .12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.qp-edit-btn:hover { background:#1d4ed8; transform:scale(1.08); }
+.qp-edit-btn:active { transform:scale(.92); }
+body.qp-admin .qp-edit-btn { display:flex; }
+body.qp-admin .qp-price-zone { cursor:pointer; position:relative; transition:box-shadow .15s, border-color .15s; -webkit-tap-highlight-color:transparent; }
+body.qp-admin .qp-price-zone:hover { border-color:#1d4ed8 !important; box-shadow:0 0 0 2px rgba(29,78,216,.15); }
+body.qp-admin .qp-price-zone.qp-pressing { border-color:#1d4ed8 !important; box-shadow:0 0 0 3px rgba(29,78,216,.35); background:#eff6ff !important; }
+body.qp-admin .qp-price-zone::after {
+  content:'✏️ lang drücken'; position:absolute; top:-9px; right:8px;
+  background:#0f172a; color:#fff; font-size:9px; font-weight:700;
+  padding:1px 7px; border-radius:100px; opacity:0; transition:opacity .15s; pointer-events:none;
+}
+body.qp-admin .qp-price-zone:hover::after { opacity:1; }
+body.qp-admin .promo-vk-badge { cursor:pointer; }
+
+.qp-overlay {
+  position:fixed; inset:0; background:rgba(15,23,42,.6);
+  display:none; align-items:center; justify-content:center;
+  z-index:9999; padding:16px; backdrop-filter:blur(3px);
+}
+.qp-overlay.open { display:flex; }
+.qp-modal {
+  background:#fff; border-radius:18px; width:100%; max-width:560px;
+  max-height:92vh; overflow:hidden; display:flex; flex-direction:column;
+  box-shadow:0 20px 60px rgba(0,0,0,.35);
+}
+.qp-head { padding:16px 20px; background:#0f172a; color:#fff; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.qp-head h3 { font-size:16px; font-weight:800; margin:0; line-height:1.25; }
+.qp-head .qp-sub { font-size:11px; opacity:.7; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+.qp-close { background:rgba(255,255,255,.15); border:none; color:#fff; width:32px; height:32px; border-radius:8px; font-size:18px; cursor:pointer; flex-shrink:0; }
+.qp-close:hover { background:rgba(255,255,255,.3); }
+.qp-body { padding:18px 20px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.qp-group { margin-bottom:18px; }
+.qp-group-title { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#1d4ed8; margin-bottom:8px; }
+.qp-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.qp-field label { display:block; font-size:11px; font-weight:700; color:#64748b; margin-bottom:3px; }
+.qp-input-wrap { position:relative; display:block; }
+.qp-input-wrap .qp-cur {
+  position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  font-size:15px; font-weight:800; color:#94a3b8; pointer-events:none;
+  transition:color .12s;
+}
+.qp-input-wrap input:focus ~ .qp-cur { color:#1d4ed8; }
+.qp-input-wrap input:disabled ~ .qp-cur { color:#cbd5e1; }
+.qp-input-wrap.qp-empty .qp-cur { opacity:.4; }
+.qp-field input {
+  width:100%; padding:10px 34px 10px 12px; border:1px solid #cbd5e1; border-radius:9px;
+  font-size:15px; font-weight:700; color:#0f172a; font-family:'Inter',sans-serif;
+  background:#f8fafc; transition:border .12s, background .12s;
+  -moz-appearance:textfield;
+}
+.qp-field input::-webkit-outer-spin-button,
+.qp-field input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+.qp-field input:focus { outline:none; border-color:#1d4ed8; background:#fff; box-shadow:0 0 0 3px rgba(29,78,216,.12); }
+.qp-field input:disabled { background:#f1f5f9; color:#94a3b8; }
+.qp-check { display:flex; align-items:center; gap:6px; margin-top:5px; font-size:11px; color:#64748b; font-weight:600; cursor:pointer; }
+.qp-check input { width:15px; height:15px; accent-color:#1d4ed8; cursor:pointer; }
+
+/* --- Bedingungs-Haken im Modal --- */
+.qp-cond-box { background:#fffbeb; border:1px solid #fde68a; border-radius:11px; padding:12px 14px; }
+.qp-cond-row {
+  display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:9px;
+  cursor:pointer; font-size:13px; font-weight:700; color:#78350f;
+  border:1px solid transparent; transition:background .12s, border-color .12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.qp-cond-row:hover { background:#fef3c7; }
+.qp-cond-row input { width:18px; height:18px; accent-color:#d97706; cursor:pointer; flex-shrink:0; }
+.qp-cond-row.checked { background:#fef3c7; border-color:#f59e0b; }
+.qp-cond-hint { font-size:11px; color:#92400e; opacity:.8; margin-top:7px; font-weight:600; }
+
+/* --- UND/ODER Umschalter --- */
+.qp-logic { margin-top:10px; padding-top:10px; border-top:1px dashed #fcd34d; }
+.qp-logic.qp-logic-off { display:none; }
+.qp-logic-label { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#b45309; margin-bottom:7px; }
+.qp-logic-btns { display:flex; gap:8px; }
+.qp-logic-btn {
+  flex:1; padding:9px 8px; border-radius:9px; cursor:pointer; text-align:center;
+  border:2px solid #fcd34d; background:#fff; color:#92400e;
+  font-size:12px; font-weight:800; font-family:'Inter',sans-serif;
+  transition:all .12s; line-height:1.3;
+  -webkit-tap-highlight-color:transparent;
+}
+.qp-logic-btn small { display:block; font-size:9px; font-weight:600; opacity:.75; margin-top:2px; }
+.qp-logic-btn:hover { background:#fef3c7; }
+.qp-logic-btn.active { background:#d97706; border-color:#b45309; color:#fff; }
+.qp-logic-btn.active small { opacity:.9; }
+
+/* --- Bedingungs-Hinweis auf der Kachel (Kundenansicht) --- */
+.promo-cond {
+  background:#fffbeb; border:1px solid #fcd34d; border-left:4px solid #f59e0b;
+  border-radius:0 8px 8px 0; padding:8px 10px; margin-bottom:10px;
+}
+.promo-cond-title {
+  font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.06em;
+  color:#b45309; margin-bottom:4px;
+}
+.promo-cond-list { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+.promo-cond-pill {
+  display:inline-block; font-size:11px; font-weight:800; padding:3px 9px;
+  border-radius:100px; background:#f59e0b; color:#78350f; white-space:nowrap;
+}
+.promo-cond-op {
+  display:inline-block; font-size:10px; font-weight:900; color:#b45309;
+  text-transform:uppercase; letter-spacing:.05em; padding:0 2px;
+}
+.qp-marge {
+  background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px;
+  padding:11px 14px; font-size:13px; font-weight:800; color:#15803d; text-align:center; margin-top:4px;
+}
+.qp-marge.neg { background:#fef2f2; border-color:#fecaca; color:#dc2626; }
+.qp-marge.na  { background:#f8fafc; border-color:#e2e8f0; color:#94a3b8; }
+.qp-foot { padding:14px 20px; border-top:1px solid #e2e8f0; display:flex; gap:10px; background:#f8fafc; }
+.qp-foot button { flex:1; padding:12px; border-radius:10px; font-size:14px; font-weight:800; cursor:pointer; border:none; font-family:'Inter',sans-serif; }
+.qp-btn-cancel { background:#e2e8f0; color:#475569; }
+.qp-btn-cancel:hover { background:#cbd5e1; }
+.qp-btn-save { background:#16a34a; color:#fff; }
+.qp-btn-save:hover { background:#15803d; }
+.qp-btn-save:disabled { opacity:.6; cursor:not-allowed; }
+@media (max-width:480px){ .qp-grid { grid-template-columns:1fr 1fr; gap:8px; } .qp-modal { max-width:100%; } }
+@media print { .qp-edit-btn, .qp-overlay { display:none !important; } }
+
+/* ===== TOC ===== */
+.toc-link { display:block; padding:9px 14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; color:#1d4ed8; font-size:13px; font-weight:600; text-decoration:none; transition:all .15s; }
+.toc-link:hover { background:#dbeafe; border-color:#93c5fd; }
+.toc-link-green { background:#f0fdf4; border-color:#bbf7d0; color:#166534; }
+.toc-link-purple { background:#faf5ff; border-color:#d8b4fe; color:#6b21a8; }
+.toc-link-navy { background:#eff6ff; border-color:#bfdbfe; color:#1e40af; }
+
+/* ===== PUSH / INCENTIVE CARDS (user view) ===== */
+.push-card { background:white; border-left:5px solid #22c55e; border-radius:12px; padding:18px 20px; display:flex; align-items:flex-start; gap:14px; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
+.incentive-card { background:white; border-left:5px solid #a855f7; border-radius:12px; padding:18px 20px; display:flex; align-items:flex-start; gap:14px; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
+
+/* ===== BUNDLE CARD (user view) ===== */
+.bundle-card { background:white; border:2px solid #1e3a8a; border-radius:14px; overflow:hidden; break-inside:avoid; box-shadow:0 4px 20px rgba(0,0,0,0.08); }
+.bundle-header { background:linear-gradient(135deg,#1e3a8a,#1d4ed8); color:white; padding:16px 20px; }
+
+/* ===== ANBIETER GROUP (user view) ===== */
+.anbieter-header { background:linear-gradient(90deg,#1e3a8a,#2563eb); color:white; border-radius:12px 12px 0 0; padding:12px 20px; font-size:17px; font-weight:800; }
+
+/* ===== SECTION DIVIDER ===== */
+.section-divider { display:flex; align-items:center; gap:14px; padding-bottom:14px; border-bottom:3px solid #1d4ed8; margin-bottom:24px; }
+.section-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+
+/* ===== MARGE PREVIEW ===== */
+.marge-preview-box { padding:10px 16px; border-radius:8px; font-weight:700; font-size:15px; background:#f8fafc; border:1px solid #e2e8f0; }
+
+/* ===== PRINT / PDF ===== */
+.print-only { display:none; }
+
+@media print {
+  /* A4 QUERFORMAT */
+  @page {
+    size: A4 landscape;
+    margin: 8mm 10mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  html, body {
+    background: white !important;
+    background-image: none !important;
+    font-size: 8.5pt;
+    color: #0f172a !important;
+  }
+
+  /* Elemente ausblenden */
+  #app-header, #admin-view, #user-search-wrap,
+  #status-msg, .no-print { display: none !important; }
+
+  /* User View immer sichtbar */
+  #user-view { display: block !important; padding: 0; }
+
+  /* Print-Only-Elemente einblenden */
+  .print-only { display: block !important; }
+
+  /* ---- SEITE 1: COVER (volle Seite) ---- */
+  .print-cover {
+    position: relative;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    background: linear-gradient(145deg, #0f1f4d 0%, #1e3a8a 45%, #2563eb 100%) !important;
+    color: white !important;
+    padding: 50px 70px !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    max-height: 178mm !important;
+    box-sizing: border-box !important;
+  }
+  .print-cover-bg-shape {
+    position: absolute !important;
+    border-radius: 50% !important;
+    background: rgba(255,255,255,0.07) !important;
+    width: 420px !important;
+    height: 420px !important;
+    top: -160px !important;
+    right: -120px !important;
+  }
+  .print-cover-bg-shape-2 {
+    width: 260px !important;
+    height: 260px !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: -120px !important;
+    left: -80px !important;
+    background: rgba(37,99,235,0.35) !important;
+  }
+  .print-cover-logo {
+    position: relative !important;
+    z-index: 1 !important;
+    background: rgba(255,255,255,0.16) !important;
+    border: 1px solid rgba(255,255,255,0.3) !important;
+    color: white !important;
+    font-weight: 800 !important;
+    font-size: 11pt !important;
+    letter-spacing: 0.05em !important;
+    padding: 6px 16px !important;
+    border-radius: 100px !important;
+    margin-bottom: 28px !important;
+    display: inline-block !important;
+  }
+  .print-cover-month {
+    position: relative !important;
+    z-index: 1 !important;
+    font-size: 15pt !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.18em !important;
+    opacity: 0.8 !important;
+    margin-bottom: 4px !important;
+  }
+  .print-cover-title {
+    position: relative !important;
+    z-index: 1 !important;
+    font-size: 46pt !important;
+    font-weight: 900 !important;
+    letter-spacing: -1.5px !important;
+    line-height: 1.05 !important;
+    margin: 0 0 6px 0 !important;
+  }
+  .print-cover-year {
+    position: relative !important;
+    z-index: 1 !important;
+    font-size: 20pt !important;
+    font-weight: 300 !important;
+    opacity: 0.75 !important;
+    margin-bottom: 26px !important;
+  }
+  .print-cover-divider {
+    position: relative !important;
+    z-index: 1 !important;
+    width: 70px !important;
+    height: 4px !important;
+    background: #fff !important;
+    border-radius: 4px !important;
+    margin-bottom: 26px !important;
+    opacity: 0.85 !important;
+  }
+  .print-cover-stats {
+    position: relative !important;
+    z-index: 1 !important;
+    display: flex !important;
+    gap: 36px !important;
+    margin-bottom: 8px !important;
+  }
+  .print-cover-stats .stat-num {
+    font-size: 22pt !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+  }
+  .print-cover-stats .stat-label {
+    font-size: 8pt !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    opacity: 0.75 !important;
+    margin-top: 3px !important;
+  }
+  .print-cover-footer {
+    position: absolute !important;
+    bottom: 36px !important;
+    left: 70px !important;
+    right: 70px !important;
+    z-index: 1 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    font-size: 8pt !important;
+    opacity: 0.75 !important;
+    border-top: 1px solid rgba(255,255,255,0.25) !important;
+    padding-top: 12px !important;
+  }
+
+  /* ---- SEITE 2: EIGENE INHALTSVERZEICHNIS-SEITE ---- */
+  .print-toc-page {
+    display: block !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-before: always !important;
+    break-before: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    padding: 14px 6px !important;
+    min-height: 170mm !important;
+  }
+  .print-toc-page-title {
+    font-size: 22pt !important;
+    font-weight: 900 !important;
+    color: #0f172a !important;
+    margin-bottom: 4px !important;
+  }
+  .print-toc-page-sub {
+    font-size: 9pt !important;
+    color: #64748b !important;
+    margin-bottom: 22px !important;
+  }
+  .print-toc-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+  .print-toc-link {
+    display: flex !important;
+    flex: 0 0 31% !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-left: 5px solid #1d4ed8 !important;
+    border-radius: 8px !important;
+    padding: 14px 18px !important;
+    font-size: 12pt !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    box-sizing: border-box !important;
+  }
+  .print-toc-link .print-toc-count {
+    font-size: 9pt !important;
+    font-weight: 700 !important;
+    background: #1d4ed8 !important;
+    color: white !important;
+    border-radius: 100px !important;
+    padding: 2px 10px !important;
+  }
+  .print-toc-link-navy { border-left-color: #1e3a8a !important; }
+
+  /* Alte inline TOC / Push-Header im Druck nicht mehr nötig (eigene Seite 2) */
+  #toc-container { display: none !important; }
+
+  /* Section Dividers kompakt */
+  .section-divider {
+    padding-bottom: 6px !important;
+    margin-bottom: 8px !important;
+    margin-top: 8px !important;
+    border-bottom: 2px solid #1d4ed8 !important;
+  }
+  .section-divider h3 { font-size: 11pt !important; }
+  .section-icon { width: 28px !important; height: 28px !important; font-size: 13px !important; }
+
+  /* ---- PUSH & INCENTIVE: 3 Spalten kompakt ---- */
+  #push-section-user, #incentive-section-user {
+    margin-bottom: 8px !important;
+    break-inside: avoid;
+  }
+  #user-push-list, #user-incentive-list {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+  .push-card, .incentive-card {
+    padding: 8px 10px !important;
+    gap: 8px !important;
+    border-radius: 6px !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  .push-card > div:first-child,
+  .incentive-card img {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    font-size: 14px !important;
+    border-radius: 6px !important;
+  }
+
+  /* ---- SEITE 3 BEGINN: Geräte-Header + Bundles ---- */
+  #device-actions-header {
+    page-break-before: always !important;
+    break-before: page !important;
+    margin-top: 0 !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* ---- BUNDLES: direkt nach Geräte-Header, keine neue Seite ---- */
+  #bundle-section-header {
+    break-before: avoid !important;
+    page-break-before: avoid !important;
+    margin-bottom: 6px !important;
+    margin-top: 10px !important;
+  }
+  #user-bundle-list {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+  }
+  .bundle-card {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    border-radius: 8px !important;
+    border-width: 1.5px !important;
+  }
+  .bundle-header {
+    padding: 7px 10px !important;
+  }
+  .bundle-header > div:first-child { font-size: 8.5pt !important; font-weight: 800 !important; margin-bottom: 2px !important; }
+  .bundle-header span { font-size: 7pt !important; }
+
+  /* Bundle body: komplett komprimiert */
+  #user-bundle-list .bundle-card > div:last-child {
+    padding: 7px 10px !important;
+  }
+  /* Bundle-Bilder im Print: kompakt anzeigen statt ausblenden */
+  #user-bundle-list [style*="grid-template-columns:repeat(auto-fill"] {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 4px !important;
+    margin-bottom: 6px !important;
+  }
+  #user-bundle-list [style*="grid-template-columns:repeat(auto-fill"] > div {
+    padding: 4px !important;
+    min-height: 50px !important;
+    border-radius: 4px !important;
+  }
+  #user-bundle-list [style*="grid-template-columns:repeat(auto-fill"] img {
+    max-height: 48px !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
+  }
+  /* Rechnungsweg kompakter */
+  #user-bundle-list [style*="background:#eff6ff"] {
+    padding: 5px 8px !important;
+    margin-bottom: 5px !important;
+    font-size: 7.5pt !important;
+  }
+  #user-bundle-list [style*="background:#eff6ff"] > div:first-child {
+    font-size: 7pt !important;
+    margin-bottom: 2px !important;
+  }
+  #user-bundle-list [style*="background:#eff6ff"] > div:last-child {
+    font-size: 7.5pt !important;
+    line-height: 1.4 !important;
+  }
+  /* Preis-Box kompakter */
+  #user-bundle-list [style*="background:#dc2626"] {
+    padding: 6px 10px !important;
+    border-radius: 6px !important;
+    min-width: auto !important;
+  }
+  #user-bundle-list [style*="background:#dc2626"] [style*="font-size:24px"] {
+    font-size: 14pt !important;
+  }
+  /* Badges kleiner */
+  #user-bundle-list .badge { font-size: 7pt !important; padding: 1px 6px !important; }
+  /* Shop-Link und Gutschein kompakter */
+  #user-bundle-list a[style*="background:#16a34a"] {
+    padding: 5px 8px !important;
+    font-size: 7.5pt !important;
+    border-radius: 5px !important;
+  }
+  #user-bundle-list [style*="background:#fef9c3"] {
+    padding: 5px 8px !important;
+    font-size: 7.5pt !important;
+    border-radius: 5px !important;
+  }
+  /* Tarif-Name */
+  #user-bundle-list [style*="font-size:16px;font-weight:800"] {
+    font-size: 9pt !important;
+    margin-bottom: 4px !important;
+  }
+
+  /* ---- PROMOTIONS: direkt nach Geräte-Header/Bundles, kein zusätzlicher Seitenumbruch ---- */
+  #user-view-content {
+    margin-top: 8px !important;
+  }
+  /* Jede Anbieter-Gruppe: darf sich über mehrere Seiten verteilen, nur der Header soll nicht alleine am Seitenende stehen */
+  .anbieter-section {
+    margin-top: 14px !important;
+  }
+  .anbieter-header {
+    padding: 7px 14px !important;
+    font-size: 10pt !important;
+    border-radius: 6px 6px 0 0 !important;
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+  .anbieter-section > div:last-child {
+    padding: 10px 0 0 0 !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* Karten-Grid: 4 Spalten im Querformat */
+  .cards-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 7px !important;
+  }
+
+  /* Promo-Card kompakt */
+  .promo-card {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    border-radius: 7px !important;
+  }
+  .promo-card-img {
+    height: 110px !important;
+    padding: 8px !important;
+  }
+  .promo-card-body {
+    padding: 8px 10px !important;
+  }
+  .promo-card-body > div:first-child { /* device name */
+    font-size: 9pt !important;
+    margin-bottom: 2px !important;
+  }
+  .promo-vk-badge {
+    font-size: 8pt !important;
+    padding: 2px 7px !important;
+  }
+
+  /* EZ Box kompakt */
+  .promo-card [style*="background:#f8fafc"] {
+    padding: 6px 8px !important;
+  }
+
+  /* PDF Container letzte Seite */
+  #user-pdf-container:not(.hidden) {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+  #user-pdf-container.hidden { display: none !important; }
+
+  /* Leere Divs verstecken */
+  div:empty { display: none !important; }
+}
+
+/* ===== GRIDS ===== */
+.cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; }
+.cards-grid-2 { display:grid; grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); gap:16px; }
+.form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.form-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.form-grid-4 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px; }
+@media(max-width:640px) { .form-grid-2,.form-grid-3,.form-grid-4 { grid-template-columns:1fr; } .cards-grid { grid-template-columns:1fr; } .cards-grid-2 { grid-template-columns:1fr; } }
+
+/* ===== BADGE PULSE ===== */
+@keyframes pulse-badge { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+.badge-pulse { animation:pulse-badge 1.8s infinite; }
+
+/* ===== SCROLL MARGIN ===== */
+[id] { scroll-margin-top:90px; }
+</style>
+</head>
+<body>
+
+<!-- STATUS MESSAGE -->
+<div id="status-msg"></div>
+
+<!-- ===== HEADER ===== -->
+<header id="app-header" class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm no-print">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+    <!-- Logo + Title -->
+    <div class="flex items-center gap-3 min-w-0">
+      <div class="bg-blue-700 text-white font-black text-sm px-3 py-1.5 rounded-lg tracking-wide flex-shrink-0">HeTec</div>
+      <div>
+        <div class="font-extrabold text-slate-900 text-lg leading-tight screen-title">Aktionsmappen-Dashboard</div>
+        <div id="print-header-title" class="hidden font-extrabold text-slate-900 text-lg leading-tight print-only">Aktionsmappe</div>
+        <div id="visit-counter-display" class="text-xs text-slate-400 font-medium">Lädt…</div>
+      </div>
+    </div>
+    <!-- Actions -->
+    <div class="flex items-center gap-3 flex-shrink-0">
+      <button onclick="exportToPdfLinked()" class="btn btn-primary btn-sm no-print" title="PDF mit klickbarem Inhaltsverzeichnis">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        PDF (klickbar)
+      </button>
+      <button onclick="exportToPdf()" class="btn btn-ghost btn-sm no-print" title="Nativer Druckdialog">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Drucken
+      </button>
+      <button id="email-update-btn" onclick="sendUpdateEmail()" class="btn btn-primary btn-sm relative hidden no-print">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
+        Update-Mail
+        <span id="email-badge" class="hidden absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full badge-pulse">0</span>
+      </button>
+      <button id="admin-panel-btn" onclick="toggleAdminPanel()" class="admin-panel-btn hidden no-print">⚙️ Admin-Panel öffnen</button>
+      <!-- View Toggle -->
+      <div class="flex items-center gap-2 no-print">
+        <span id="view-name" class="text-sm font-semibold text-slate-600">Kunden-Ansicht</span>
+        <label class="relative inline-block w-14 h-7 cursor-pointer toggle-wrap">
+          <input type="checkbox" id="view-toggle" class="opacity-0 w-0 h-0" onchange="switchView()">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+
+<!-- ===== ADMIN VIEW ===== -->
+<section id="admin-view" class="space-y-6 hidden">
+
+  <!-- ====== PUSH PROVISION ====== -->
+  <div class="admin-section-card">
+    <div class="admin-section-header bg-green-50 border-b border-green-100 text-green-800">
+      <span class="text-lg">💰</span> Push Provision Verwaltung
+    </div>
+    <div class="admin-section-body">
+      <form id="push-form" onsubmit="savePushProvision(event)" data-editing-id="">
+        <div class="form-grid-2 mb-4">
+          <div class="col-span-2" style="grid-column:1/-1">
+            <label class="form-label">Titel / Bezeichnung der Provision</label>
+            <input type="text" id="pushTitel" name="pushTitel" placeholder="z.B. Black Friday Push" class="form-input" required>
+          </div>
+          <div>
+            <label class="form-label">Betrag (€, numerisch)</label>
+            <input type="number" step="0.01" id="pushBetrag" name="pushBetrag" placeholder="z.B. 30.00" class="form-input" required>
+          </div>
+          <div><!-- spacer --></div>
+          <div>
+            <label class="form-label">Push Start</label>
+            <input type="date" id="pushStart" name="pushStart" class="form-input" required>
+          </div>
+          <div>
+            <label class="form-label">Push Ende</label>
+            <input type="date" id="pushEnd" name="pushEnd" class="form-input" required>
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="form-label">Bemerkung (Was gibt es extra?)</label>
+            <textarea id="pushBemerkung" name="pushBemerkung" class="form-input" rows="2" required></textarea>
+          </div>
+        </div>
+        <button id="push-submit-btn" type="submit" class="btn btn-green btn-full">Push Speichern</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====== BUNDLE VERWALTUNG ====== -->
+  <div class="admin-section-card">
+    <div class="admin-section-header bg-blue-50 border-b border-blue-100 text-blue-900">
+      <span class="text-lg">📦</span> o2 Bundle Angebote Verwaltung
+    </div>
+    <div class="admin-section-body">
+      <form id="bundle-form" onsubmit="saveBundle(event)" data-editing-id="">
+        <div class="space-y-4">
+          <!-- Slot + Active -->
+          <div class="form-grid-2">
+            <div style="grid-column:1/-1">
+              <label class="form-label">Canvas / Slot (fester Link)</label>
+              <select id="bundleSlot" name="bundleSlot" class="form-input" onchange="onBundleSlotChange()"></select>
+              <p class="text-xs text-slate-400 mt-1">Slot-ID bleibt stabil. Löschen deaktiviert — nur aktiv/inaktiv.</p>
+            </div>
+            <div style="grid-column:1/-1">
+              <label class="check-label">
+                <input type="checkbox" id="bundleActive" name="bundleActive" checked>
+                🟢 Angebot aktiv (wird beworben)
+              </label>
+            </div>
+          </div>
+          <!-- Titel + Tarif -->
+          <div class="form-grid-2">
+            <div style="grid-column:1/-1">
+              <label class="form-label">Bundle Bezeichnung / Titel</label>
+              <input type="text" id="bundleTitel" name="bundleTitel" placeholder="z.B. o2 Mobile M + iPhone 16 Pro + TV" class="form-input" required>
+            </div>
+            <div>
+              <label class="form-label">Tarif Name</label>
+              <input type="text" id="bundleTarifName" name="bundleTarifName" placeholder="o2 Mobile M" class="form-input">
+            </div>
+          </div>
+          <!-- Preise -->
+          <div class="form-grid-3">
+            <div>
+              <label class="form-label">Preis 24 Monate (€/Monat)</label>
+              <input type="text" id="bundlePreis24" name="bundlePreis24" placeholder="z.B. 49,99" class="form-input font-bold">
+            </div>
+            <div>
+              <label class="form-label">Preis 36 Monate (€/Monat)</label>
+              <input type="text" id="bundlePreis36" name="bundlePreis36" placeholder="z.B. 44,99" class="form-input font-bold">
+            </div>
+            <div>
+              <label class="form-label">Einmalkosten (€)</label>
+              <input type="text" id="bundleEinmalkosten" name="bundleEinmalkosten" placeholder="z.B. 0,00" class="form-input">
+            </div>
+          </div>
+          <!-- Laufzeit-Anzeige Steuerung -->
+          <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            <div class="form-label mb-2">Laufzeit-Anzeige im Bundle (Welche Preise anzeigen?)</div>
+            <div class="flex flex-wrap gap-3">
+              <label class="check-label"><input type="checkbox" id="bundleShow24" name="bundleShow24" checked> ✅ 24 Monate Angebot anzeigen</label>
+              <label class="check-label"><input type="checkbox" id="bundleShow36" name="bundleShow36"> ✅ 36 Monate Angebot anzeigen</label>
+            </div>
+            <p class="text-xs text-slate-400 mt-2">Wenn beide aktiv: Kunde sieht Dropdown zur Laufzeitwahl. Nur eine aktiv: Preis wird direkt angezeigt.</p>
+          </div>
+          <!-- Options -->
+          <div class="p-4 bg-blue-50 rounded-12 border border-blue-100 rounded-xl">
+            <div class="form-label mb-3">Enthaltene Optionen (Badge-Anzeige):</div>
+            <div class="flex flex-wrap gap-3">
+              <label class="check-label"><input type="checkbox" id="bundleOptionOnlineSchutz" name="bundleOptionOnlineSchutz"> 🛡️ Inkl. Online Schutz</label>
+              <label class="check-label"><input type="checkbox" id="bundleOptionTV" name="bundleOptionTV"> 📺 Inkl. o2 TV</label>
+              <label class="check-label"><input type="checkbox" id="bundleHasSim" name="bundleHasSim" checked> 💳 SIM-Karte enthalten</label>
+              <div class="flex-grow" style="min-width:200px">
+                <input type="text" id="bundleOptionCustom" name="bundleOptionCustom" placeholder="Weitere Option (z.B. Netflix…)" class="form-input text-sm">
+              </div>
+            </div>
+          </div>
+          <!-- Images -->
+          <div>
+            <label class="form-label">Bild-URLs</label>
+            <div id="bundle-images-container" class="space-y-2 mb-2"></div>
+            <button type="button" onclick="addBundleImageField()" class="btn btn-ghost btn-sm">+ Weiteres Bild</button>
+          </div>
+          <!-- Shop Link + Gutschein -->
+          <div class="form-grid-2">
+            <div style="grid-column:1/-1">
+              <label class="form-label">Externer Link / Shop-Link (Optional)</label>
+              <input type="url" id="bundleShopLink" name="bundleShopLink" placeholder="https://mein-shop.de/angebot" class="form-input">
+            </div>
+            <div>
+              <label class="form-label">Gutscheincode</label>
+              <input type="text" id="bundleGutschein" name="bundleGutschein" placeholder="z.B. SOMMER25" class="form-input">
+            </div>
+          </div>
+          <!-- Rechnungsweg -->
+          <div>
+            <label class="form-label">Rechnungsweg & Buchungsprozess</label>
+            <textarea id="bundleRechnungsweg" name="bundleRechnungsweg" rows="4" class="form-input" placeholder="Buchungsprozess: Einzahlung 100€ in Kasse…"></textarea>
+          </div>
+          <!-- Datum -->
+          <div class="form-grid-2">
+            <div>
+              <label class="form-label">Startdatum</label>
+              <input type="date" id="bundleStart" name="bundleStart" class="form-input">
+            </div>
+            <div>
+              <label class="form-label">Enddatum</label>
+              <input type="date" id="bundleEnd" name="bundleEnd" class="form-input">
+            </div>
+          </div>
+        </div>
+        <div class="mt-6">
+          <button id="bundle-submit-btn" type="submit" class="btn btn-navy btn-full">Bundle Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====== GERÄTE-AKTION ====== -->
+  <div class="admin-section-card">
+    <div class="admin-section-header bg-blue-50 border-b border-blue-100 text-blue-700">
+      <span class="text-lg">📱</span> Geräte-Aktionseingabe
+    </div>
+    <div class="admin-section-body">
+      <form id="promotion-form" onsubmit="savePromotion(event)" data-editing-id="">
+        <!-- Basisdaten -->
+        <div class="mb-6 pb-5 border-b border-slate-100">
+          <div class="text-sm font-bold text-blue-600 uppercase tracking-wide mb-4">Basisdaten</div>
+          <div class="form-grid-2 gap-4">
+            <div>
+              <label class="form-label">Anbieter (Auswahl)</label>
+              <select id="anbieterSelect" name="anbieterSelect" required onchange="toggleFreeText(null)" class="form-input">
+                <option value="" disabled selected>Wählen Sie einen Anbieter…</option>
+                <option value="o2">o2</option>
+                <option value="HeTec">HeTec</option>
+                <option value="GreenMnky">GreenMnky</option>
+                <option value="DSL">DSL</option>
+                <option value="Freiertext">Andere / Freier Text</option>
+              </select>
+            </div>
+            <div id="anbieter-freitext-container" class="hidden">
+              <label class="form-label">Anbieter (Freitext)</label>
+              <input type="text" id="anbieterFreiertext" name="anbieterFreiertext" placeholder="Anbieternamen eingeben" class="form-input">
+            </div>
+            <div>
+              <label class="form-label">Gerätebezeichnung</label>
+              <input type="text" id="geraetebezeichnung" name="geraetebezeichnung" class="form-input" required>
+            </div>
+            <div>
+              <label class="form-label">Aktionsbeginn</label>
+              <input type="date" id="aktionsbeginn" name="aktionsbeginn" class="form-input" required>
+            </div>
+            <div>
+              <label class="form-label">Gültig bis</label>
+              <div class="flex items-center gap-2">
+                <input type="date" id="aktionsende" name="aktionsende" class="form-input">
+                <div class="flex flex-col items-center flex-shrink-0">
+                  <input type="checkbox" id="dauerhaftAktiv" name="dauerhaftAktiv" onchange="toggleDauerhaftAktiv(this.checked)" class="w-4 h-4 accent-blue-600">
+                  <label for="dauerhaftAktiv" class="text-xs text-slate-400 whitespace-nowrap">dauerhaft</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Preise -->
+        <div class="mb-6 pb-5 border-b border-slate-100">
+          <div class="text-sm font-bold text-blue-600 uppercase tracking-wide mb-4">Preise & Marge</div>
+          <div class="form-grid-3 mb-4">
+            <div>
+              <label class="form-label">Einkaufspreis (€)</label>
+              <div class="flex items-center gap-2">
+                <input type="number" step="0.01" id="einkaufspreis" name="einkaufspreis" class="form-input">
+                <div class="flex flex-col items-center flex-shrink-0">
+                  <input type="checkbox" id="noEinkaufspreis" name="noEinkaufspreis" onchange="togglePriceInput('EK', this.checked)" class="w-4 h-4 accent-blue-600">
+                  <label for="noEinkaufspreis" class="text-xs text-slate-400">n.v.</label>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Verkaufspreis (€)</label>
+              <div class="flex items-center gap-2">
+                <input type="number" step="0.01" id="verkaufspreis" name="verkaufspreis" class="form-input">
+                <div class="flex flex-col items-center flex-shrink-0">
+                  <input type="checkbox" id="noVerkaufspreis" name="noVerkaufspreis" onchange="togglePriceInput('VK', this.checked)" class="w-4 h-4 accent-blue-600">
+                  <label for="noVerkaufspreis" class="text-xs text-slate-400">n.v.</label>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-end">
+              <div class="marge-preview-box w-full" id="marge-preview">Vorschau Marge: –</div>
+            </div>
+          </div>
+          <!-- EZ Mobile -->
+          <div class="mb-3">
+            <label class="form-label">Einmalzahlung o2 Mobile (XL/L/M/S)</label>
+            <div class="form-grid-4">
+              <div><label class="text-xs text-slate-400 mb-1 block">XL (€)</label><input type="text" id="einmalzahlungXL" name="einmalzahlungXL" placeholder="z.B. 1€" class="form-input text-sm"></div>
+              <div><label class="text-xs text-slate-400 mb-1 block">L (€)</label><input type="text" id="einmalzahlungL" name="einmalzahlungL" placeholder="z.B. 29,99€" class="form-input text-sm"></div>
+              <div><label class="text-xs text-slate-400 mb-1 block">M (€)</label><input type="text" id="einmalzahlungM" name="einmalzahlungM" placeholder="z.B. 49,99€" class="form-input text-sm"></div>
+              <div><label class="text-xs text-slate-400 mb-1 block">S (€)</label><input type="text" id="einmalzahlungS" name="einmalzahlungS" placeholder="z.B. 99,99€" class="form-input text-sm"></div>
+            </div>
+          </div>
+          <!-- EZ Home -->
+          <div>
+            <label class="form-label">Einmalzahlung o2 My Home (XL/L/M/S)</label>
+            <div class="form-grid-4">
+              <div><label class="text-xs text-slate-400 mb-1 block">Home XL</label><input type="text" id="einmalzahlungHomeXL" name="einmalzahlungHomeXL" placeholder="z.B. 1€" class="form-input text-sm"></div>
+              <div><label class="text-xs text-slate-400 mb-1 block">Home L</label><input type="text" id="einmalzahlungHomeL" name="einmalzahlungHomeL" placeholder="z.B. 29,99€" class="form-input text-sm"></div>
+              <div><label class="text-xs text-slate-400 mb-1 block">Home M</label><input type="text" id="einmalzahlungHomeM" name="einmalzahlungHomeM" placeholder="z.B. 49,99€" class="form-input text-sm"></div>
+              <div><label class="text-xs text-slate-400 mb-1 block">Home S</label><input type="text" id="einmalzahlungHomeS" name="einmalzahlungHomeS" placeholder="z.B. 99,99€" class="form-input text-sm"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Tarif-Gültigkeit -->
+        <div class="mb-6 pb-5 border-b border-slate-100">
+          <div class="text-sm font-bold text-blue-600 uppercase tracking-wide mb-4">Tarif-Gültigkeit</div>
+          <div class="flex flex-wrap gap-3">
+            <label class="check-label"><input id="mobile" name="mobile" type="checkbox"> o2 Mobile (XL/L/M/S)</label>
+            <label class="check-label"><input id="myhome" name="myhome" type="checkbox"> o2 My Home (XL/L/M/S)</label>
+            <label class="check-label"><input id="data" name="data" type="checkbox"> o2 Data (XL/L/M)</label>
+          </div>
+        </div>
+        <!-- Zusätzliche Infos -->
+        <div class="mb-6 pb-5 border-b border-slate-100">
+          <div class="text-sm font-bold text-blue-600 uppercase tracking-wide mb-4">Zusätzliche Infos</div>
+          <div class="form-grid-3 mb-4">
+            <label class="check-label"><input id="anschlussbefreiung" name="anschlussbefreiung" type="checkbox"> Anschlusspreisbefreiung</label>
+            <label class="check-label"><input id="zusatzpush" name="zusatzpush" type="checkbox"> Zusätzlichen Push</label>
+            <div>
+              <label class="form-label">Sonderprovision</label>
+              <input type="text" id="sonderprovision" name="sonderprovision" placeholder="z.B. +50€" class="form-input">
+            </div>
+          </div>
+          <!-- STÖRER AUSWAHL -->
+          <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+            <div class="form-label mb-3">🎯 Störer / Aufmerksamkeits-Badge (optional)</div>
+            <div class="flex flex-wrap gap-3 mb-3">
+              <button type="button" class="stoerer-btn" id="stoerer-none" onclick="setStoerer('')">
+                <span class="stoerer-preview" style="background:#e2e8f0;color:#64748b">— Kein Störer —</span>
+                <span class="stoerer-label">Keiner</span>
+              </button>
+              <button type="button" class="stoerer-btn" id="stoerer-highlight" onclick="setStoerer('highlight')">
+                <span class="stoerer-preview" style="background:#f59e0b;color:#000">⭐ Highlight</span>
+                <span class="stoerer-label">Highlight Angebot</span>
+              </button>
+              <button type="button" class="stoerer-btn" id="stoerer-flash" onclick="setStoerer('flash')">
+                <span class="stoerer-preview" style="background:#dc2626;color:#fff">⚡ Flash Sale</span>
+                <span class="stoerer-label">Flash Sale</span>
+              </button>
+              <button type="button" class="stoerer-btn" id="stoerer-abverkauf" onclick="setStoerer('abverkauf')">
+                <span class="stoerer-preview" style="background:#7c3aed;color:#fff">🔥 Abverkauf</span>
+                <span class="stoerer-label">Abverkauf</span>
+              </button>
+            </div>
+            <input type="hidden" id="stoerer" name="stoerer" value="">
+            <p class="text-xs text-amber-700">Aktiver Störer erscheint als Ribbon-Ecke auf der Kachel in der Kunden-Ansicht.</p>
+          </div>
+          <div>
+            <label class="form-label">Bemerkungsfeld</label>
+            <textarea id="bemerkung" name="bemerkung" rows="3" class="form-input"></textarea>
+          </div>
+        </div>
+        <!-- Bilder & Links -->
+        <div class="mb-6">
+          <div class="text-sm font-bold text-blue-600 uppercase tracking-wide mb-4">Bilder & Benefits (URLs)</div>
+          <div class="form-grid-3">
+            <div>
+              <label class="form-label">Bild URL (Gerät)</label>
+              <input type="url" id="bildUrl" name="bildUrl" class="form-input">
+            </div>
+            <div>
+              <label class="form-label">HW Benefit 24 Monate (Link)</label>
+              <input type="url" id="hwBenefit24" name="hwBenefit24" class="form-input">
+            </div>
+            <div>
+              <label class="form-label">HW Benefit 36 Monate (Link)</label>
+              <input type="url" id="hwBenefit36" name="hwBenefit36" class="form-input">
+            </div>
+          </div>
+        </div>
+        <button id="submit-btn" type="submit" class="btn btn-primary btn-full">Aktion Speichern</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====== PDF VERWALTUNG ====== -->
+  <div class="admin-section-card" id="pdf-upload-section">
+    <div class="admin-section-header border-b border-slate-100 text-slate-700">
+      <span class="text-lg">📄</span> PDF Aktionsübersicht verwalten
+    </div>
+    <div class="admin-section-body">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="flex-1">
+          <label class="form-label">Aktuelle o2 Übersicht hochladen (PDF)</label>
+          <input type="file" id="pdf-upload-input" accept="application/pdf" onchange="handlePdfUpload(event)"
+            class="block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+          <p id="pdf-status-label" class="text-xs text-slate-400 mt-2">Kein PDF ausgewählt</p>
+        </div>
+        <button onclick="deletePdf()" class="btn btn-red btn-sm flex-shrink-0">PDF Löschen</button>
+      </div>
+      <div id="admin-pdf-preview" class="mt-4"></div>
+    </div>
+  </div>
+
+  <!-- ====== DATEN BACKUP ====== -->
+  <div class="admin-section-card" id="data-backup-section">
+    <div class="admin-section-header bg-yellow-50 border-b border-yellow-100 text-yellow-800">
+      <span class="text-lg">💾</span> Daten-Backup & Wiederherstellung
+    </div>
+    <div class="admin-section-body space-y-4">
+      <div class="flex items-center justify-between">
+        <p class="text-sm text-slate-600">Sichern Sie alle eingegebenen Aktionen als JSON-Datei.</p>
+        <button onclick="exportData()" class="btn btn-yellow btn-sm">Daten exportieren (JSON)</button>
+      </div>
+      <div class="border-t border-slate-100 pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <label class="form-label mb-0">Daten wiederherstellen (Import)</label>
+        <input type="file" id="import-input" accept="application/json" onchange="importData(event)"
+          class="text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer">
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== INCENTIVE VERWALTUNG ====== -->
+  <div class="admin-section-card">
+    <div class="admin-section-header bg-purple-50 border-b border-purple-100 text-purple-800">
+      <span class="text-lg">⭐</span> Incentive Verwaltung
+    </div>
+    <div class="admin-section-body">
+      <form id="incentive-form" onsubmit="saveIncentive(event)" data-editing-id="">
+        <div class="form-grid-2 mb-4">
+          <div style="grid-column:1/-1">
+            <label class="form-label">Titel / Bezeichnung</label>
+            <input type="text" id="incentiveTitel" name="incentiveTitel" placeholder="z.B. Xiaomi Watch Aktion" class="form-input" required>
+          </div>
+          <div>
+            <label class="form-label">Incentive Start</label>
+            <input type="date" id="incentiveStart" name="incentiveStart" class="form-input" required>
+          </div>
+          <div>
+            <label class="form-label">Incentive Ende</label>
+            <input type="date" id="incentiveEnd" name="incentiveEnd" class="form-input" required>
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="form-label">Bild URL</label>
+            <input type="url" id="incentiveBildUrl" name="incentiveBildUrl" class="form-input">
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="form-label">Bemerkung</label>
+            <textarea id="incentiveBemerkung" name="incentiveBemerkung" rows="2" class="form-input" required></textarea>
+          </div>
+          <!-- Sichtbarkeit -->
+          <div style="grid-column:1/-1">
+            <label class="check-label" style="background:#f0fdf4;border-color:#bbf7d0">
+              <input type="checkbox" id="incentiveSichtbar" name="incentiveSichtbar" checked>
+              <span>👁️ In Kunden-Ansicht anzeigen</span>
+            </label>
+            <p class="text-xs text-slate-400 mt-1">Deaktivieren = Incentive wird im Admin gespeichert, aber in der Kunden-Ansicht ausgeblendet.</p>
+          </div>
+        </div>
+        <button id="incentive-submit-btn" type="submit" class="btn btn-purple btn-full">Incentive Speichern</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====== ÜBERSICHTEN TABS ====== -->
+  <div class="admin-section-card">
+    <div class="admin-section-header border-b border-slate-100 text-slate-700">
+      <span class="text-lg">📊</span> Übersichten
+      <div class="flex gap-2 ml-auto flex-wrap">
+        <button class="admin-tab" data-tab="push" onclick="setAdminTab('push')">💰 Push <span class="tab-badge" id="admin-tab-count-push">0</span></button>
+        <button class="admin-tab" data-tab="bundle" onclick="setAdminTab('bundle')">📦 Bundles <span class="tab-badge" id="admin-tab-count-bundle">0</span></button>
+        <button class="admin-tab" data-tab="promotions" onclick="setAdminTab('promotions')">📋 Geräte <span class="tab-badge" id="admin-tab-count-promotions">0</span></button>
+        <button class="admin-tab" data-tab="incentives" onclick="setAdminTab('incentives')">⭐ Incentives <span class="tab-badge" id="admin-tab-count-incentives">0</span></button>
+      </div>
+    </div>
+    <div class="admin-section-body">
+      <!-- Push Tab -->
+      <div class="admin-tab-panel" data-tab-panel="push">
+        <div id="admin-push-list"><p class="text-center text-slate-400 py-6">Lade Push-Provisionen…</p></div>
+      </div>
+      <!-- Bundle Tab -->
+      <div class="admin-tab-panel hidden" data-tab-panel="bundle">
+        <div id="admin-bundle-list"><p class="text-center text-slate-400 py-6">Lade Bundles…</p></div>
+      </div>
+      <!-- Promotions Tab -->
+      <div class="admin-tab-panel hidden" data-tab-panel="promotions">
+        <div id="admin-search-container" class="mb-4">
+          <input type="text" id="admin-search" placeholder="Suche (Gerät, Anbieter…)" class="form-input" oninput="filterAdminPromotions()">
+        </div>
+        <div id="admin-promotion-list"><p class="text-center text-slate-400 py-6">Lade Aktionen…</p></div>
+      </div>
+      <!-- Incentives Tab -->
+      <div class="admin-tab-panel hidden" data-tab-panel="incentives">
+        <div id="admin-incentive-list"><p class="text-center text-slate-400 py-6">Lade Incentives…</p></div>
+      </div>
+    </div>
+  </div>
+
+</section><!-- /admin-view -->
+
+<!-- ===== USER VIEW ===== -->
+<section id="user-view" class="hidden">
+
+  <div id="qp-admin-hint" class="no-print">
+    <span>🔓 <b>Admin-Modus aktiv</b> — du bearbeitest direkt in der Kundenansicht.</span>
+    <span class="qp-hint-pill">✏️ Stift antippen</span>
+    <span class="qp-hint-pill">oder Preis lang drücken</span>
+  </div>
+
+  <!-- Print Cover (only visible in print) -->
+  <div class="hidden print-only print-cover">
+    <div class="print-cover-bg-shape"></div>
+    <div class="print-cover-bg-shape print-cover-bg-shape-2"></div>
+    <div class="print-cover-logo">HeTec</div>
+    <div class="print-cover-month" id="print-cover-month">Juni</div>
+    <div class="print-cover-title">Verkaufsmappe</div>
+    <div class="print-cover-year" id="print-cover-year">2026</div>
+    <div class="print-cover-divider"></div>
+    <div class="print-cover-stats" id="print-cover-stats"></div>
+    <div class="print-cover-footer">
+      <div>HeTec GmbH &middot; Nur für Mitarbeiter &middot; Vertraulich</div>
+      <div id="print-cover-date" style="font-weight:700"></div>
+    </div>
+  </div>
+
+  <!-- Print TOC Page (page 2, only visible in print) -->
+  <div class="hidden print-only print-toc-page" id="print-toc-page">
+    <div class="print-toc-page-title">Inhaltsverzeichnis</div>
+    <div class="print-toc-page-sub">Schnellzugriff auf alle aktuellen Aktionen</div>
+    <div id="print-toc-grid" class="print-toc-grid"></div>
+  </div>
+
+  <!-- Header row -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 no-print" id="user-search-wrap">
+    <h2 class="text-2xl font-extrabold text-slate-900">Aktionen &amp; Incentives</h2>
+    <div id="user-search-container" class="w-full sm:w-80">
+      <div class="relative">
+        <input type="text" id="user-search" placeholder="Suche (Gerät, Tarif, Incentive)…" oninput="handleUserSearch()"
+          class="form-input pl-9">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sortier & Kategorie-Leiste -->
+  <div class="no-print mb-6 flex flex-wrap items-center gap-3 p-3 bg-white rounded-xl border border-slate-200 shadow-sm" id="filter-sort-bar">
+
+    <!-- Sortierung -->
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Sortierung</span>
+      <button id="sort-btn-neu" onclick="setSort('neu')"
+        class="sort-btn active-sort flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-600 border transition"
+        style="background:#1d4ed8;color:white;border-color:#1d4ed8">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+        Neu → Alt
+      </button>
+      <button id="sort-btn-alt" onclick="setSort('alt')"
+        class="sort-btn flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-600 border transition"
+        style="background:#f1f5f9;color:#374151;border-color:#e2e8f0">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7 7 7-7"/></svg>
+        Alt → Neu
+      </button>
+    </div>
+
+    <div class="w-px h-6 bg-slate-200 flex-shrink-0 hidden sm:block"></div>
+
+    <!-- Kategorie-Filter -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-xs font-bold text-slate-400 uppercase tracking-wide flex-shrink-0">Kategorie</span>
+      <button onclick="setKategorie('alle')" id="kat-alle"
+        class="kat-btn px-3 py-1.5 rounded-lg text-sm font-semibold border transition"
+        style="background:#0f172a;color:white;border-color:#0f172a">
+        Alle
+      </button>
+      <button onclick="setKategorie('bundle')" id="kat-bundle"
+        class="kat-btn px-3 py-1.5 rounded-lg text-sm font-semibold border transition"
+        style="background:#f1f5f9;color:#374151;border-color:#e2e8f0">
+        📦 o2 Bundle
+      </button>
+      <button onclick="setKategorie('DSL')" id="kat-DSL"
+        class="kat-btn px-3 py-1.5 rounded-lg text-sm font-semibold border transition"
+        style="background:#f1f5f9;color:#374151;border-color:#e2e8f0">
+        🌐 DSL
+      </button>
+      <button onclick="setKategorie('GreenMnky')" id="kat-GreenMnky"
+        class="kat-btn px-3 py-1.5 rounded-lg text-sm font-semibold border transition"
+        style="background:#f1f5f9;color:#374151;border-color:#e2e8f0">
+        🐒 GreenMnky
+      </button>
+      <button onclick="setKategorie('HeTec')" id="kat-HeTec"
+        class="kat-btn px-3 py-1.5 rounded-lg text-sm font-semibold border transition"
+        style="background:#f1f5f9;color:#374151;border-color:#e2e8f0">
+        🏪 HeTec
+      </button>
+      <button onclick="setKategorie('Sonstiges')" id="kat-Sonstiges"
+        class="kat-btn px-3 py-1.5 rounded-lg text-sm font-semibold border transition"
+        style="background:#f1f5f9;color:#374151;border-color:#e2e8f0">
+        📦 Sonstiges
+      </button>
+    </div>
+  </div>
+
+  <!-- Push Provisionen -->
+  <div id="push-section-user" class="mb-10 hidden">
+    <div class="section-divider">
+      <div class="section-icon bg-green-100">💰</div>
+      <h3 class="text-xl font-extrabold text-slate-900">Push Provisionen</h3>
+    </div>
+    <div class="cards-grid-2" id="user-push-list"></div>
+  </div>
+
+  <!-- Incentives (ausgeblendet) -->
+  <div id="incentive-section-user" class="mb-10 hidden" style="display:none!important"></div>
+  <div id="user-incentive-list" class="hidden" style="display:none!important"></div>
+
+  <!-- Geräte-Aktionen Heading (triggers page break in print) -->
+  <div class="section-divider" id="device-actions-header">
+    <div class="section-icon bg-blue-100">📱</div>
+    <h3 class="text-xl font-extrabold text-slate-900">Geräte-Aktionen</h3>
+  </div>
+
+  <!-- TOC -->
+  <div id="toc-container" class="mb-8">
+    <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+      <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Inhaltsverzeichnis</div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3" id="toc-grid">
+        <div class="text-center text-slate-400 col-span-full py-4 text-sm">Lade Inhaltsangabe…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bundles (direkt nach TOC, kein Seitenumbruch davor) -->
+  <div id="bundle-section-header" class="mb-10 hidden">
+    <div class="section-divider">
+      <div class="section-icon bg-blue-100">📦</div>
+      <h3 class="text-xl font-extrabold text-slate-900">o2 Bundle Angebote</h3>
+    </div>
+    <div class="cards-grid-2" id="user-bundle-list"></div>
+  </div>
+
+  <!-- Grouped Promotions (Seite 3+) -->
+  <div id="user-view-content" style="break-before:auto">
+    <div class="text-center text-slate-400 py-8">Lade Aktionen…</div>
+  </div>
+
+  <!-- PDF Container -->
+  <div id="user-pdf-container" class="mt-12"></div>
+
+</section><!-- /user-view -->
+</div><!-- /max-w -->
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+// ===== CONFIG =====
+const STORAGE_KEY_PROMOTIONS = 'am_promotions_data';
+const STORAGE_KEY_INCENTIVES = 'am_incentives_data';
+const STORAGE_KEY_PUSH       = 'am_push_data';
+const STORAGE_KEY_BUNDLES    = 'am_bundles_data';
+const STORAGE_KEY_VISITS     = 'am_visits_data';
+const STORAGE_KEY_PDF        = 'am_pdf_file_data';
+const STORAGE_KEY_CHANGES    = 'am_recent_changes';
+const STORAGE_KEY_LASTSAVE   = 'am_last_save_at';
+
+const UPLOADED_PDF_FILE = { contentFetchId:"uploaded:Aktionsmappe Neu 12.2025.pdf", fileName:"Aktionsmappe Neu 12.2025.pdf" };
+
+const CLOUD_SYNC_ENABLED = true;
+const CLOUD_COLLECTION   = 'aktionsmappe';
+const CLOUD_DOC_ID       = 'global';
+
+const firebaseConfig = {
+  apiKey:"AIzaSyCjYCn-X694K1xoUULAin_zDta1r-dSh7Y",
+  authDomain:"verkaufsmappe-7d917.firebaseapp.com",
+  projectId:"verkaufsmappe-7d917",
+  storageBucket:"verkaufsmappe-7d917.firebasestorage.app",
+  messagingSenderId:"916375365270",
+  appId:"1:916375365270:web:5b6bfbc37a4d0be1a004b7"
+};
+
+const predefinedProviders = ['o2','HeTec','GreenMnky','DSL','Freiertext'];
+
+let promotions=[], incentives=[], pushProvisions=[], bundles=[], recentChanges=[], pdfData=null;
+let __db=null, __firebaseApp=null, __lastCloudError=null, __cloudWarnedOnce=false, __cloudLoadedToastShown=false;
+
+const FIXED_SIM_IMAGE_DATAURI = 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27800%27%20height%3D%27520%27%20viewBox%3D%270%200%20800%20520%27%3E%3Crect%20x%3D%2730%27%20y%3D%2730%27%20rx%3D%2740%27%20width%3D%27740%27%20height%3D%27460%27%20fill%3D%27%23f1f5f9%27%20stroke%3D%27%2394a3b8%27%20stroke-width%3D%2710%27/%3E%3Cpath%20d%3D%27M610%2030%20L770%20190%20L770%2030%20Z%27%20fill%3D%27%23cbd5e1%27/%3E%3Crect%20x%3D%27210%27%20y%3D%27160%27%20rx%3D%2726%27%20width%3D%27380%27%20height%3D%27240%27%20fill%3D%27%23e2e8f0%27%20stroke%3D%27%2394a3b8%27%20stroke-width%3D%2710%27/%3E%3Crect%20x%3D%27250%27%20y%3D%27200%27%20rx%3D%2718%27%20width%3D%27300%27%20height%3D%2780%27%20fill%3D%27%23f59e0b%27/%3E%3Crect%20x%3D%27250%27%20y%3D%27305%27%20rx%3D%2718%27%20width%3D%27140%27%20height%3D%2770%27%20fill%3D%27%23fbbf24%27/%3E%3Crect%20x%3D%27410%27%20y%3D%27305%27%20rx%3D%2718%27%20width%3D%27140%27%20height%3D%2770%27%20fill%3D%27%23fde68a%27/%3E%3Ctext%20x%3D%2770%27%20y%3D%27470%27%20font-family%3D%27Arial%27%20font-size%3D%2752%27%20fill%3D%27%2394a3b8%27%20font-weight%3D%27700%27%3ESIM%3C/text%3E%3C/svg%3E';
+
+// ===== BUNDLE SLOT CONFIG (unchanged from original) =====
+const BUNDLE_CANVAS_CATEGORIES = [
+  {key:'canvas1',label:'1. Hardware, Anbieter & Nutzung'},
+  {key:'canvas2',label:'2. Haushalt und weitere Produkte'},
+  {key:'canvas3',label:'3. Fernsehen & Wi-Fi'},
+  {key:'canvas4',label:'4. Netzwerk (Router & WLAN)'}
+];
+const FIXED_BUNDLE_SLOTS = [
+  {id:'hw-01',categoryKey:'canvas1',label:'Canvas 1 - Angebot 1'},
+  {id:'hw-02',categoryKey:'canvas1',label:'Canvas 1 - Angebot 2'},
+  {id:'hw-03',categoryKey:'canvas1',label:'Canvas 1 - Angebot 3'},
+  {id:'home-01',categoryKey:'canvas2',label:'Canvas 2 - Angebot 1'},
+  {id:'home-02',categoryKey:'canvas2',label:'Canvas 2 - Angebot 2'},
+  {id:'home-03',categoryKey:'canvas2',label:'Canvas 2 - Angebot 3'},
+  {id:'tv-01',categoryKey:'canvas3',label:'Canvas 3 - Angebot 1'},
+  {id:'tv-02',categoryKey:'canvas3',label:'Canvas 3 - Angebot 2'},
+  {id:'tv-03',categoryKey:'canvas3',label:'Canvas 3 - Angebot 3'},
+  {id:'net-router-dsl',  categoryKey:'canvas4',label:'Netzwerk - Router DSL/VDSL'},
+  {id:'net-router-cable',categoryKey:'canvas4',label:'Netzwerk - Router Kabel'},
+  {id:'net-router-fiber',categoryKey:'canvas4',label:'Netzwerk - Router Glasfaser'},
+  {id:'net-router-5g',   categoryKey:'canvas4',label:'Netzwerk - Router 5G/LTE'},
+  {id:'net-mesh',        categoryKey:'canvas4',label:'Netzwerk - Mesh-System'},
+  {id:'net-repeater',    categoryKey:'canvas4',label:'Netzwerk - WLAN-Repeater'},
+  {id:'net-powerline',   categoryKey:'canvas4',label:'Netzwerk - Powerline-Adapter'}
+];
+const __getCategoryLabel = k => (BUNDLE_CANVAS_CATEGORIES.find(c=>c.key===k)||{}).label||k||'';
+const __getSlotMeta = id => FIXED_BUNDLE_SLOTS.find(s=>s.id===id)||null;
+const __bundleOrderIndex = id => { const i=FIXED_BUNDLE_SLOTS.findIndex(s=>s.id===id); return i===-1?9999:i; };
+const sortBundlesForUI = list => [...(list||[])].sort((a,b)=>__bundleOrderIndex(a.id)-__bundleOrderIndex(b.id));
+
+function ensureFixedBundleSlots(){
+  const fixedIds=new Set(FIXED_BUNDLE_SLOTS.map(s=>s.id));
+  const map=new Map((bundles||[]).map(b=>[b.id,b]));
+  const fixed=[];
+  for(const slot of FIXED_BUNDLE_SLOTS){
+    const ex=map.get(slot.id);
+    if(ex){ex.__fixedSlot=true;ex.legacy=false;ex.categoryKey=slot.categoryKey;ex.categoryLabel=__getCategoryLabel(slot.categoryKey);if(typeof ex.active!=='boolean')ex.active=true;if(!Array.isArray(ex.images))ex.images=[];fixed.push(ex);}
+    else{fixed.push({id:slot.id,__fixedSlot:true,legacy:false,categoryKey:slot.categoryKey,categoryLabel:__getCategoryLabel(slot.categoryKey),active:false,titel:'',tarifName:'',angebotspreis:'',optionOnlineSchutz:false,optionTV:false,optionCustom:'',hasSim:true,images:[],shopLink:'',gutscheincode:'',rechnungsweg:'',start:'',end:'',createdAt:new Date().toISOString()});}
+  }
+  const legacy=(bundles||[]).filter(b=>!fixedIds.has(b.id)).map(b=>({...b,legacy:true,__fixedSlot:false,active:false,categoryKey:b.categoryKey||'legacy',categoryLabel:b.categoryLabel||'Legacy'}));
+  bundles=[...fixed,...legacy];
+}
+
+function populateBundleSlotOptions(){
+  const sel=document.getElementById('bundleSlot'); if(!sel)return; sel.innerHTML='';
+  for(const cat of BUNDLE_CANVAS_CATEGORIES){
+    const og=document.createElement('optgroup'); og.label=cat.label;
+    FIXED_BUNDLE_SLOTS.filter(s=>s.categoryKey===cat.key).forEach(s=>{const opt=document.createElement('option');opt.value=s.id;opt.textContent=`${s.label} (ID: ${s.id})`;og.appendChild(opt);});
+    sel.appendChild(og);
+  }
+}
+
+// ===== HELPERS =====
+const generateId = () => Date.now().toString(36)+Math.random().toString(36).substr(2);
+const isExpired = (d,dauerhaft) => { if(dauerhaft)return false; if(!d)return true; const[y,m,day]=d.split('-').map(Number); return new Date(Date.UTC(y,m-1,day))<new Date(new Date().toDateString()); };
+const calculateMargin = (ek,vk,noEk,noVk) => { if(noEk||noVk)return null; const e=parseFloat(ek),v=parseFloat(vk); if(isNaN(e)||isNaN(v))return'N/A'; return((v/1.19)-e).toFixed(2); };
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function showMessage(msg,isError=false){
+  const el=document.getElementById('status-msg');
+  el.textContent=msg; el.className=isError?'error':'success'; el.style.display='block';
+  clearTimeout(el.__t); el.__t=setTimeout(()=>{el.className='';el.style.display='none';},3500);
+}
+
+window.exportToPdf = () => { setTimeout(()=>window.print(),100); };
+
+// EK/Marge: einzelnes Feld beim Antippen scharf schalten (Toggle).
+window.revealBlur = (el, ev) => {
+  if(ev){ ev.stopPropagation(); }
+  el.classList.toggle('revealed');
+};
+
+window.togglePriceInput = (type,checked) => {
+  const id=type==='EK'?'einkaufspreis':'verkaufspreis';
+  const el=document.getElementById(id); if(!el)return;
+  el.value=''; el.disabled=checked;
+  updateMarginPreview();
+};
+
+window.toggleDauerhaftAktiv = (checked) => {
+  const el=document.getElementById('aktionsende'); if(!el)return;
+  el.disabled=checked;
+  if(checked){ el.removeAttribute('required'); } else { el.setAttribute('required','required'); }
+};
+
+window.toggleFreeText = (override) => {
+  const sel=document.getElementById('anbieterSelect');
+  const cont=document.getElementById('anbieter-freitext-container');
+  const ft=document.getElementById('anbieterFreiertext');
+  const show=override!==null?override:(sel.value==='Freiertext');
+  cont.classList.toggle('hidden',!show);
+  if(show)ft.setAttribute('required','required'); else{ft.removeAttribute('required');ft.value='';}
+};
+
+window.copyToClipboard = text => navigator.clipboard.writeText(text).then(()=>showMessage('Gutscheincode kopiert!'),(e)=>prompt('Kopieren fehlgeschlagen:',text));
+window.copyBundleLink = id => { const url=window.location.href.split('?')[0]; navigator.clipboard.writeText(`${url}?bundleId=${id}`).then(()=>showMessage('🔗 Direkt-Link kopiert!')); };
+
+const formatCurrencyInput = el => { let v=el.value.trim(); if(!v||v.includes('€'))return; if(/\d/.test(v))el.value=v+' €'; };
+
+// ===== MARGIN PREVIEW =====
+function updateMarginPreview(){
+  const ek=document.getElementById('einkaufspreis');
+  const vk=document.getElementById('verkaufspreis');
+  const prev=document.getElementById('marge-preview');
+  if(!ek||!vk||!prev)return;
+  if(ek.disabled||vk.disabled){prev.textContent='Marge: –';prev.style.color='#94a3b8';return;}
+  const m=calculateMargin(ek.value,vk.value,false,false);
+  if(m==='N/A'||m===null){prev.textContent='Vorschau Marge: –';prev.style.color='#94a3b8';return;}
+  prev.textContent=`Vorschau Marge (Netto): ${m} €`;
+  prev.style.color=parseFloat(m)>=0?'#16a34a':'#dc2626';
+}
+
+// ===== FIREBASE =====
+function initCloudSync(){
+  if(!CLOUD_SYNC_ENABLED)return false;
+  try{
+    if(!window.firebase||!window.firebase.initializeApp){return false;}
+    __firebaseApp=window.firebase.apps?.length?window.firebase.app():window.firebase.initializeApp(firebaseConfig);
+    __db=window.firebase.firestore(); return true;
+  }catch(e){console.warn('Cloud init failed:',e);return false;}
+}
+async function loadDataFromCloud(){
+  if(!initCloudSync()||!__db)return null;
+  try{const snap=await __db.collection(CLOUD_COLLECTION).doc(CLOUD_DOC_ID).get(); return snap.exists?snap.data():null;}
+  catch(e){__lastCloudError=e;if(!__cloudWarnedOnce){__cloudWarnedOnce=true;try{showMessage('⚠️ Cloud-Load fehlgeschlagen',true);}catch(_){}}return null;}
+}
+async function saveDataToCloud(payload){
+  if(!initCloudSync()||!__db)return false;
+  try{
+    await __db.collection(CLOUD_COLLECTION).doc(CLOUD_DOC_ID).set({...payload,__meta:{updatedAt:new Date().toISOString(),app:'Verkaufsmappe',version:'cloud-sync-v1'}},{merge:true});
+    return true;
+  }catch(e){__lastCloudError=e;return false;}
+}
+
+// ===== DATA LOAD/SAVE =====
+const normPush = p => {
+  if(!p.betrag&&typeof p.titel==='string'&&p.titel.includes('€')){const n=parseFloat(p.titel.replace('€','').trim());return{...p,titel:'Zusatz-Push',betrag:isNaN(n)?0:n};}
+  p.betrag=p.betrag?parseFloat(p.betrag):0; return p;
+};
+
+async function loadData(){
+  try{
+    const localSavedAt=localStorage.getItem(STORAGE_KEY_LASTSAVE)||'';
+    const cloud=await loadDataFromCloud();
+    const cloudSavedAt=(cloud&&cloud.__meta&&cloud.__meta.updatedAt)?cloud.__meta.updatedAt:'';
+    const localIsNewer=localSavedAt && (!cloudSavedAt || new Date(localSavedAt)>new Date(cloudSavedAt));
+    if(cloud&&typeof cloud==='object'&&!localIsNewer){
+      if(Array.isArray(cloud.promotions)){promotions=cloud.promotions;localStorage.setItem(STORAGE_KEY_PROMOTIONS,JSON.stringify(promotions));}
+      if(Array.isArray(cloud.incentives)){incentives=cloud.incentives;localStorage.setItem(STORAGE_KEY_INCENTIVES,JSON.stringify(incentives));}
+      if(Array.isArray(cloud.pushProvisions)){pushProvisions=cloud.pushProvisions;localStorage.setItem(STORAGE_KEY_PUSH,JSON.stringify(pushProvisions));}
+      if(Array.isArray(cloud.bundles)){bundles=cloud.bundles;localStorage.setItem(STORAGE_KEY_BUNDLES,JSON.stringify(bundles));}
+      if(cloudSavedAt)localStorage.setItem(STORAGE_KEY_LASTSAVE,cloudSavedAt);
+      if(!__cloudLoadedToastShown){__cloudLoadedToastShown=true;showMessage('✅ Cloud-Daten geladen');}
+    }else if(cloud&&localIsNewer){
+      if(!__cloudLoadedToastShown){__cloudLoadedToastShown=true;showMessage('✅ Lokale Admin-Änderungen sind neuer als Cloud – lokale Daten behalten');}
+    }
+    const pData=localStorage.getItem(STORAGE_KEY_PROMOTIONS);
+    const iData=localStorage.getItem(STORAGE_KEY_INCENTIVES);
+    const pushData=localStorage.getItem(STORAGE_KEY_PUSH);
+    const bundleData=localStorage.getItem(STORAGE_KEY_BUNDLES);
+    let pdfLocal=localStorage.getItem(STORAGE_KEY_PDF);
+    const changesData=localStorage.getItem(STORAGE_KEY_CHANGES);
+
+    if(!pdfLocal){try{const r=await fetch(`data/${UPLOADED_PDF_FILE.contentFetchId}`);if(r.ok){const blob=await r.blob();const b64=await new Promise(res=>{const fr=new FileReader();fr.onloadend=()=>res(fr.result);fr.readAsDataURL(blob);});const nd={name:UPLOADED_PDF_FILE.fileName,data:b64,date:new Date().toLocaleDateString()};localStorage.setItem(STORAGE_KEY_PDF,JSON.stringify(nd));pdfLocal=JSON.stringify(nd);}}catch(e){}}
+
+    if(!promotions.length)promotions=pData?JSON.parse(pData):[];
+    if(!incentives.length)incentives=iData?JSON.parse(iData):[];
+    if(!bundles.length)bundles=bundleData?JSON.parse(bundleData):[];
+    ensureFixedBundleSlots();
+    recentChanges=changesData?JSON.parse(changesData):[];
+    if(!pushProvisions.length)pushProvisions=pushData?JSON.parse(pushData).map(normPush):[];
+    else pushProvisions=pushProvisions.map(normPush);
+    pdfData=pdfLocal?JSON.parse(pdfLocal):null;
+
+    promotions.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    incentives.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    pushProvisions.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    bundles=sortBundlesForUI(bundles);
+
+    const urlParams=new URLSearchParams(window.location.search);
+    const bundleId=urlParams.get('bundleId');
+    if(bundleId)renderSingleBundleView(bundleId); else refreshUI();
+  }catch(e){console.error(e);showMessage('Fehler beim Laden der Daten',true);}
+}
+
+function reloadFromLocalStorageOnly(){
+  try{
+    promotions=JSON.parse(localStorage.getItem(STORAGE_KEY_PROMOTIONS)||'[]');
+    incentives=JSON.parse(localStorage.getItem(STORAGE_KEY_INCENTIVES)||'[]');
+    bundles=JSON.parse(localStorage.getItem(STORAGE_KEY_BUNDLES)||'[]');
+    ensureFixedBundleSlots();
+    recentChanges=JSON.parse(localStorage.getItem(STORAGE_KEY_CHANGES)||'[]');
+    pushProvisions=(JSON.parse(localStorage.getItem(STORAGE_KEY_PUSH)||'[]')).map(normPush);
+    pdfData=JSON.parse(localStorage.getItem(STORAGE_KEY_PDF)||'null');
+    promotions.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    incentives.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    pushProvisions.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    bundles=sortBundlesForUI(bundles);
+    const bundleId=new URLSearchParams(window.location.search).get('bundleId');
+    if(bundleId)renderSingleBundleView(bundleId); else refreshUI();
+  }catch(e){console.warn(e);}
+}
+
+function saveData(){
+  try{
+    const saveStamp=new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY_PROMOTIONS,JSON.stringify(promotions));
+    localStorage.setItem(STORAGE_KEY_INCENTIVES,JSON.stringify(incentives));
+    localStorage.setItem(STORAGE_KEY_PUSH,JSON.stringify(pushProvisions));
+    localStorage.setItem(STORAGE_KEY_BUNDLES,JSON.stringify(bundles));
+    localStorage.setItem(STORAGE_KEY_LASTSAVE,saveStamp);
+    let cloudPromise=Promise.resolve(true);
+    if(CLOUD_SYNC_ENABLED){
+      cloudPromise=(async()=>{
+        const ok=await saveDataToCloud({promotions,incentives,pushProvisions,bundles});
+        if(ok)showMessage('✅ Änderung lokal + in Cloud gespeichert');
+        else showMessage('⚠️ Lokal gespeichert, Cloud-Speichern fehlgeschlagen',true);
+        return ok;
+      })();
+    }
+    refreshUI();
+    return cloudPromise;
+  }catch(e){showMessage('Speicherfehler (Speicher voll?)',true);return Promise.resolve(false);}
+}
+
+// ===== CHANGE LOG / EMAIL =====
+function addRecentChange(text){recentChanges.push(text);localStorage.setItem(STORAGE_KEY_CHANGES,JSON.stringify(recentChanges));refreshUI();}
+function sendUpdateEmail(){
+  if(!recentChanges.length){showMessage('Keine Änderungen zum Versenden.',true);return;}
+  const subject=encodeURIComponent('News in der Aktionsmappe');
+  const body=encodeURIComponent('Hallo Zusammen,\n\nhier sind die neuesten Updates aus der Aktionsmappe:\n\n'+recentChanges.map(c=>'- '+c).join('\n')+'\n\nViele Grüße');
+  window.location.href=`mailto:?subject=${subject}&body=${body}`;
+  setTimeout(()=>{if(confirm('Hat sich das E-Mail Fenster geöffnet? Sollen die Änderungen nun aus der Liste entfernt werden?')){recentChanges=[];localStorage.removeItem(STORAGE_KEY_CHANGES);refreshUI();showMessage('Änderungsliste zurückgesetzt.');}},1000);
+}
+function updateEmailButtonBadge(){
+  const badge=document.getElementById('email-badge');
+  const btn=document.getElementById('email-update-btn');
+  if(!badge||!btn)return;
+  if(recentChanges.length>0){badge.textContent=recentChanges.length;badge.classList.remove('hidden');btn.classList.remove('hidden');}
+  else{badge.classList.add('hidden');}
+}
+
+// ===== SWITCH VIEW =====
+const ADMIN_PASSWORD = 'HeTec2026!';
+
+window.switchView = () => {
+  const toggle=document.getElementById('view-toggle');
+  const wantsAdmin=toggle.checked;
+
+  if(wantsAdmin){
+    let unlocked=false;
+    try{unlocked=sessionStorage.getItem('ADMIN_UNLOCKED')==='1';}catch(e){}
+    if(!unlocked){
+      const pw=prompt('Bitte Admin-Passwort eingeben:');
+      if(pw===null){ toggle.checked=false; return; }
+      if(pw!==ADMIN_PASSWORD){
+        showMessage('Falsches Passwort.',true);
+        toggle.checked=false;
+        return;
+      }
+      try{sessionStorage.setItem('ADMIN_UNLOCKED','1');}catch(e){}
+    }
+  }
+
+  const isAdmin=toggle.checked;
+
+  // NEU: Kundenansicht bleibt IMMER sichtbar (auch im Admin-Modus),
+  // damit Preise direkt in der Kachel bearbeitet werden koennen.
+  document.getElementById('user-view').classList.remove('hidden');
+
+  // Admin-Panel nur zeigen, wenn Admin aktiv UND Panel aufgeklappt ist.
+  const panelOpen = isAdmin && (sessionStorage.getItem('ADMIN_PANEL_OPEN')==='1');
+  document.getElementById('admin-view').classList.toggle('hidden', !panelOpen);
+
+  const panelBtn=document.getElementById('admin-panel-btn');
+  if(panelBtn) panelBtn.classList.toggle('hidden', !isAdmin);
+  if(typeof updateAdminPanelBtn==='function') updateAdminPanelBtn();
+
+  document.getElementById('view-name').textContent=isAdmin?'Admin-Modus (Bearbeiten)':'Kunden-Ansicht';
+  const emailBtn=document.getElementById('email-update-btn');
+  if(emailBtn){if(isAdmin)emailBtn.classList.remove('hidden');else if(!recentChanges.length)emailBtn.classList.add('hidden');}
+};
+
+// ===== ADMIN-PANEL EIN-/AUSKLAPPEN =====
+function updateAdminPanelBtn(){
+  const btn=document.getElementById('admin-panel-btn');
+  if(!btn)return;
+  const open=sessionStorage.getItem('ADMIN_PANEL_OPEN')==='1';
+  btn.textContent = open ? '✖ Admin-Panel schließen' : '⚙️ Admin-Panel öffnen';
+  btn.classList.toggle('panel-open', open);
+}
+window.toggleAdminPanel = () => {
+  const open = sessionStorage.getItem('ADMIN_PANEL_OPEN')==='1';
+  try{ sessionStorage.setItem('ADMIN_PANEL_OPEN', open?'0':'1'); }catch(e){}
+  const av=document.getElementById('admin-view');
+  av.classList.toggle('hidden', open);
+  updateAdminPanelBtn();
+  if(!open){ av.scrollIntoView({behavior:'smooth', block:'start'}); }
+};
+
+// ===== ADMIN TABS =====
+function setAdminTab(key){
+  document.querySelectorAll('.admin-tab').forEach(b=>b.classList.toggle('active',b.getAttribute('data-tab')===key));
+  document.querySelectorAll('.admin-tab-panel').forEach(p=>p.classList.toggle('hidden',p.getAttribute('data-tab-panel')!==key));
+  try{sessionStorage.setItem('ADMIN_ACTIVE_TAB',key);}catch(e){}
+}
+function updateAdminTabCount(id,val){const el=document.getElementById(id);if(el)el.textContent=Array.isArray(val)?val.length:val;}
+
+// ===== REFRESH UI =====
+function refreshUI(){
+  filterAdminPromotions();
+  renderAdminIncentiveList(incentives);
+  renderAdminPushList(pushProvisions);
+  renderAdminBundleList(bundles);
+  const us=document.getElementById('user-search');
+  if(us&&us.value) applyFilterAndSort(); else applyFilterAndSort();
+  renderPdfView();
+  updateEmailButtonBadge();
+}
+
+// ===== SINGLE BUNDLE VIEW =====
+function renderSingleBundleView(bundleId){
+  document.getElementById('admin-view').classList.add('hidden');
+  document.getElementById('user-view').classList.remove('hidden');
+  document.getElementById('view-toggle').checked=false;
+  document.getElementById('view-name').textContent='Einzelansicht';
+  document.getElementById('toc-container').classList.add('hidden');
+  const pushSec=document.getElementById('push-section-user');
+  const incSec=document.getElementById('incentive-section-user');
+  if(pushSec)pushSec.classList.add('hidden');
+  if(incSec)incSec.classList.add('hidden');
+  document.getElementById('device-actions-header').classList.add('hidden');
+  document.getElementById('user-view-content').classList.add('hidden');
+  document.getElementById('user-pdf-container').classList.add('hidden');
+  const sw=document.querySelector('.toggle-wrap');if(sw)sw.style.display='none';
+  const sc=document.getElementById('user-search-container');if(sc)sc.style.display='none';
+  const bundle=bundles.find(b=>b.id===bundleId);
+  const bundleListEl=document.getElementById('user-bundle-list');
+  const bundleHeader=document.getElementById('bundle-section-header');
+  // Back button
+  const backBtn=document.createElement('button');
+  backBtn.id='single-view-back-btn';
+  backBtn.textContent='← Zurück zur Übersicht';
+  backBtn.className='btn btn-ghost mb-6';
+  backBtn.onclick=()=>{const u=new URL(window.location);u.searchParams.delete('bundleId');window.history.pushState({},'',u);window.location.reload();};
+  const hrow=document.getElementById('user-search-wrap');
+  hrow.insertBefore(backBtn,hrow.firstChild);
+  if(bundle){
+    window.__ACTIVE_BUNDLE_FOR_TRANSFER=bundle;
+    setTimeout(()=>{try{if(window.parent&&window.parent!==window)sendBundleDataToParent(bundle);}catch(_){}},800);
+    renderUserView([],[],[],[bundle],true);
+    bundleListEl.classList.remove('hidden');
+    bundleHeader.classList.remove('hidden');
+    bundleHeader.querySelector('h3').textContent='Ihre Auswahl:';
+  }else{bundleListEl.innerHTML='<div class="p-8 bg-red-50 text-red-700 rounded-xl text-center font-bold border border-red-200">Angebot nicht gefunden oder abgelaufen.</div>';bundleListEl.classList.remove('hidden');}
+}
+
+// ===== BUNDLE PENCILSELLING =====
+window.__ACTIVE_BUNDLE_FOR_TRANSFER=null;
+const __normalizeEuro=v=>{const s=String(v??'').trim();if(!s)return'';if(s.includes('€'))return s;return s+' €';};
+function __buildDetailsHTMLFromText(text){const raw=String(text??'').replace(/\r/g,'').trim();if(!raw)return'';const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);const items=lines.map(l=>l.replace(/^[-•]\s*/,'').trim()).filter(Boolean);if(!items.length)return'';return`<ul style="margin:0;padding-left:18px">${items.map(i=>`<li style="margin:6px 0">${i.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</li>`).join('')}</ul>`;}
+function __extractBadgesFromBundle(b){const badges=[];if(!b)return badges;if(b.optionOnlineSchutz)badges.push('inkl. online Schutz');if(b.optionTV)badges.push('o2 TV');const c=String(b.optionCustom??'').trim();if(c)badges.push(c);const rw=String(b.rechnungsweg??'').toLowerCase();if(rw.includes('online to offline'))badges.push('online to offline');return badges.slice(0,6);}
+function sendBundleDataToParent(bundle){
+  const b=bundle||window.__ACTIVE_BUNDLE_FOR_TRANSFER;if(!b)return;
+  const rawImages=Array.isArray(b.images)?b.images.filter(Boolean):[];
+  const includeSim=typeof b.hasSim==='boolean'?b.hasSim:true;
+  const images=(includeSim?rawImages.concat([FIXED_SIM_IMAGE_DATAURI]):rawImages).filter(Boolean).slice(0,3);
+  const payload={type:'BUNDLE_DATA_TRANSFER',titel:b.titel||'Bundle',tarifName:b.tarifName||'',preis:__normalizeEuro(b.angebotspreis||b.preis24||''),preis24:b.preis24||b.angebotspreis||'',preis36:b.preis36||'',einmalkosten:b.einmalkosten||'',show24:b.show24!==false,show36:!!b.show36,detailsHTML:__buildDetailsHTMLFromText(b.rechnungsweg||''),badges:__extractBadgesFromBundle(b),validUntil:b.end||'',images,isBundle:true,geraet:b.titel||'Bundle',tarif:b.tarifName||'',angebotspreis:b.angebotspreis||b.preis24||'',bild:images[0]||'',bezeichnung:b.titel||'Bundle',artikelName:b.tarifName||'',bildUrl:images[0]||'',optionTV:!!b.optionTV,optionOnlineSchutz:!!b.optionOnlineSchutz,optionCustom:b.optionCustom||''};
+  if(window.parent&&window.parent!==window)window.parent.postMessage(payload,'*');
+}
+window.addEventListener('message',e=>{const d=e.data||{};if(d&&['REQUEST_BUNDLE_SCREENSHOT','REQUEST_BUNDLE_DATA_TRANSFER','REQUEST_BUNDLE_DATA','EXPORT_BUNDLE_DATA'].includes(d.type))sendBundleDataToParent();});
+window.onBundleTermChange=(bundleId,term)=>{try{const m=parseInt(term,10);if(![24,36].includes(m))return;localStorage.setItem('bundle_term_'+bundleId,String(m));const priceEl=document.getElementById('bundle-price-'+bundleId);if(!priceEl)return;const card=priceEl.closest('[data-bundle-id]');if(!card)return;const p24=(card.getAttribute('data-p24')||'').trim();const p36=(card.getAttribute('data-p36')||'').trim();const nv=(m===36?(p36||p24):(p24||p36))||'';if(nv)priceEl.textContent=nv+' €';}catch(e){}};
+
+// ===== PDF =====
+window.handlePdfUpload = event => {
+  const file=event.target.files[0]; if(!file)return;
+  if(file.type!=='application/pdf'){showMessage('Bitte nur PDF-Dateien!',true);return;}
+  if(file.size>5*1024*1024&&!confirm('Datei > 5MB. Trotzdem?'))return;
+  const reader=new FileReader();
+  reader.onload=e=>{const nd={name:file.name,data:e.target.result,date:new Date().toLocaleDateString()};try{localStorage.setItem(STORAGE_KEY_PDF,JSON.stringify(nd));pdfData=nd;renderPdfView();showMessage('PDF erfolgreich gespeichert!');}catch(err){showMessage('Fehler: PDF zu groß!',true);}};
+  reader.readAsDataURL(file);
+};
+window.deletePdf=()=>{if(!confirm('PDF wirklich löschen?'))return;localStorage.removeItem(STORAGE_KEY_PDF);pdfData=null;renderPdfView();document.getElementById('pdf-upload-input').value='';showMessage('PDF gelöscht.');};
+function renderPdfView(){
+  const cu=document.getElementById('user-pdf-container');
+  const ca=document.getElementById('admin-pdf-preview');
+  const sl=document.getElementById('pdf-status-label');
+  if(!pdfData){if(cu){cu.innerHTML='';cu.classList.add('hidden');}if(ca)ca.innerHTML='<p class="text-slate-400 italic">Keine PDF-Übersicht hinterlegt.</p>';if(sl)sl.textContent='Kein PDF ausgewählt';return;}
+  if(sl)sl.textContent=`Aktuelles PDF: ${pdfData.name} (vom ${pdfData.date})`;
+  const html=`<div class="mt-4 bg-white rounded-xl border border-slate-200 p-5 print-page-break"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-slate-800">📄 Aktionsübersicht (PDF)</h3><span class="text-xs text-slate-400">${pdfData.name}</span></div><object data="${pdfData.data}" type="application/pdf" width="100%" height="800px" class="rounded border border-slate-100"><p>Browser kann PDF nicht anzeigen. <a href="${pdfData.data}" download="${pdfData.name}" class="text-blue-600 underline">Hier klicken zum Download</a>.</p></object></div>`;
+  if(cu){cu.innerHTML=html;cu.classList.remove('hidden');}
+  if(ca)ca.innerHTML=html;
+}
+
+// ===== DATA EXPORT/IMPORT =====
+window.exportData=()=>{const d={promotions,incentives,pushProvisions,bundles};const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`aktionsmappe-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();showMessage('Backup erfolgreich exportiert!');};
+window.importData=event=>{const f=event.target.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(Array.isArray(d.promotions))promotions=d.promotions;if(Array.isArray(d.incentives))incentives=d.incentives;if(Array.isArray(d.pushProvisions))pushProvisions=d.pushProvisions.map(normPush);if(Array.isArray(d.bundles))bundles=d.bundles;ensureFixedBundleSlots();saveData();showMessage('Daten erfolgreich importiert!');}catch(err){showMessage('Fehler beim Parsen der JSON-Datei.',true);}};r.readAsText(f);};
+
+// ===== VISIT COUNTER =====
+function trackAndDisplayVisits(){
+  const today=new Date();const cmy=`${today.getFullYear()}-${today.getMonth()+1}`;
+  let vd={count:0,monthYear:cmy};
+  try{const s=localStorage.getItem(STORAGE_KEY_VISITS);if(s){const p=JSON.parse(s);vd=p.monthYear===cmy?p:{count:0,monthYear:cmy};}}catch(e){}
+  vd.count++;localStorage.setItem(STORAGE_KEY_VISITS,JSON.stringify(vd));
+  const el=document.getElementById('visit-counter-display');if(el)el.textContent=`Besuche diesen Monat: ${vd.count}`;
+}
+
+// ===== SORT & KATEGORIE STATE =====
+let currentSort = 'neu';       // 'neu' | 'alt'
+let currentKategorie = 'alle'; // 'alle' | 'bundle' | 'DSL' | 'GreenMnky' | 'HeTec' | 'Sonstiges'
+
+window.setSort = val => {
+  currentSort = val;
+  // Button-Styles aktualisieren
+  document.getElementById('sort-btn-neu').style.cssText = val==='neu'
+    ? 'background:#1d4ed8;color:white;border-color:#1d4ed8'
+    : 'background:#f1f5f9;color:#374151;border-color:#e2e8f0';
+  document.getElementById('sort-btn-alt').style.cssText = val==='alt'
+    ? 'background:#1d4ed8;color:white;border-color:#1d4ed8'
+    : 'background:#f1f5f9;color:#374151;border-color:#e2e8f0';
+  applyFilterAndSort();
+};
+
+window.setKategorie = val => {
+  currentKategorie = val;
+  // Alle Buttons zurücksetzen
+  document.querySelectorAll('.kat-btn').forEach(b => {
+    b.style.cssText = 'background:#f1f5f9;color:#374151;border-color:#e2e8f0';
+  });
+  // Aktiven Button hervorheben
+  const active = document.getElementById('kat-'+(val==='alle'?'alle':val));
+  if(active) active.style.cssText = 'background:#0f172a;color:white;border-color:#0f172a';
+  applyFilterAndSort();
+};
+
+function applyFilterAndSort() {
+  const searchTerm = (document.getElementById('user-search')?.value||'').toLowerCase();
+  let filteredPromos = promotions.filter(p => !isExpired(p.aktionsende,p.dauerhaftAktiv));
+  let filteredBundles = bundles.filter(b => b.active===true && !b.legacy && !isExpired(b.end));
+  let filteredPush = pushProvisions.filter(p => !isExpired(p.end));
+
+  // Suchfilter
+  if(searchTerm) {
+    filteredPromos = filteredPromos.filter(p =>
+      (p.geraetebezeichnung||'').toLowerCase().includes(searchTerm) ||
+      (p.anbieter||'').toLowerCase().includes(searchTerm) ||
+      (p.bemerkung||'').toLowerCase().includes(searchTerm)
+    );
+    filteredBundles = filteredBundles.filter(b =>
+      (b.titel||'').toLowerCase().includes(searchTerm) ||
+      (b.rechnungsweg||'').toLowerCase().includes(searchTerm)
+    );
+  }
+
+  // Kategoriefilter
+  if(currentKategorie !== 'alle') {
+    if(currentKategorie === 'bundle') {
+      filteredPromos = [];
+      // Bundles bleiben
+    } else {
+      filteredBundles = [];
+      filteredPromos = filteredPromos.filter(p => {
+        const a = (p.anbieter||'').toLowerCase();
+        const k = currentKategorie.toLowerCase();
+        if(currentKategorie === 'Sonstiges') {
+          const known = ['o2','hetec','greenmnky','dsl'];
+          return !known.some(kn => a.includes(kn));
+        }
+        return a.includes(k);
+      });
+    }
+  }
+
+  // Sortierung (nach createdAt)
+  const sortFn = currentSort === 'neu'
+    ? (a,b) => new Date(b.createdAt) - new Date(a.createdAt)
+    : (a,b) => new Date(a.createdAt) - new Date(b.createdAt);
+  filteredPromos.sort(sortFn);
+
+  renderUserView(filteredPromos, [], filteredPush, filteredBundles);
+}
+
+// ===== SEARCH =====
+function filterAdminPromotions(){
+  const term=(document.getElementById('admin-search')?.value||'').toLowerCase();
+  const filtered=term?promotions.filter(p=>(p.geraetebezeichnung||'').toLowerCase().includes(term)||(p.anbieter||'').toLowerCase().includes(term)):promotions;
+  renderAdminPromotionList(filtered);
+}
+function handleUserSearch(){
+  applyFilterAndSort();
+}
+
+// ===== ADMIN RENDERING =====
+function renderAdminPushList(list){
+  const el=document.getElementById('admin-push-list');
+  updateAdminTabCount('admin-tab-count-push',list.length);
+  if(!list.length){el.innerHTML='<p class="text-center text-slate-400 py-6 text-sm">Keine Push-Provisionen vorhanden.</p>';return;}
+  el.innerHTML=list.map(p=>{
+    const exp=isExpired(p.end);
+    const bd=p.betrag>0?`${p.betrag.toFixed(2)} €`:'Betrag n.A.';
+    return`<div class="list-item ${exp?'list-item-border-red':'list-item-border-green'}">
+      <div><div class="font-semibold text-slate-800 text-sm">Push: ${esc(p.titel||'Extra')} (${bd}) ${exp?'<span class="badge badge-red ml-1">ABGELAUFEN</span>':''}</div><div class="text-xs text-slate-400 mt-0.5">Zeitraum: ${esc(p.start)} bis ${esc(p.end)}</div></div>
+      <div class="flex gap-2 flex-shrink-0"><button onclick='editPushProvision("${p.id}")' class="btn btn-yellow btn-sm">Bearbeiten</button><button onclick='deletePushProvision("${p.id}")' class="btn btn-red btn-sm">Löschen</button></div>
+    </div>`;
+  }).join('');
+}
+
+function renderAdminBundleList(list){
+  const el=document.getElementById('admin-bundle-list');
+  const fixed=sortBundlesForUI((list||[]).filter(b=>!b.legacy));
+  const legacyCount=(list||[]).filter(b=>b.legacy).length;
+  let html=legacyCount>0?`<div class="p-3 bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-lg text-sm mb-4">⚠️ Hinweis: ${legacyCount} alte Bundle-Einträge (Legacy) sind deaktiviert.</div>`:'';
+  updateAdminTabCount('admin-tab-count-bundle',fixed.length);
+  if(!fixed.length){el.innerHTML=html+'<p class="text-center text-slate-400 py-6 text-sm">Keine Bundle-Slots vorhanden.</p>';return;}
+  html+=fixed.map(b=>{
+    const exp=isExpired(b.end);
+    const cat=b.categoryLabel||__getCategoryLabel(b.categoryKey);
+    return`<div class="list-item ${exp?'list-item-border-red':'list-item-border-navy'}">
+      <div><div class="flex flex-wrap items-center gap-2 mb-1"><span class="font-bold text-blue-900 text-sm">📦 ${esc(b.titel||'(leer)')} ${exp?'<span class="badge badge-red">ABGELAUFEN</span>':''}</span><span class="badge ${b.active?'badge-green':'badge-gray'}">${b.active?'AKTIV':'INAKTIV'}</span><span class="badge badge-blue">${esc(cat)}</span><span class="badge badge-gray">ID: ${b.id}</span></div><div class="text-xs text-slate-500">Tarif: ${esc(b.tarifName||'-')} | Preis: ${esc(b.angebotspreis||'-')} € | ${esc(b.start||'-')} – ${esc(b.end||'-')}</div></div>
+      <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end"><button onclick='copyBundleLink("${b.id}")' class="btn btn-ghost btn-sm">🔗 Link</button><button onclick='editBundle("${b.id}")' class="btn btn-yellow btn-sm">Bearbeiten</button><button onclick='toggleBundleActive("${b.id}")' class="btn btn-sm ${b.active?'btn-ghost':'btn-green'}">${b.active?'Deaktivieren':'Aktivieren'}</button></div>
+    </div>`;
+  }).join('');
+  el.innerHTML=html;
+}
+
+function renderAdminPromotionList(list){
+  const el=document.getElementById('admin-promotion-list');
+  updateAdminTabCount('admin-tab-count-promotions',list.length);
+  if(!list.length){el.innerHTML='<p class="text-center text-slate-400 py-6 text-sm">Keine Aktionen gefunden.</p>';return;}
+  el.innerHTML=list.map(p=>{
+    const m=calculateMargin(p.einkaufspreis,p.verkaufspreis,p.noEinkaufspreis,p.noVerkaufspreis);
+    const exp=isExpired(p.aktionsende,p.dauerhaftAktiv);
+    const ez=[p.einmalzahlungXL?`XL: ${p.einmalzahlungXL}`:null,p.einmalzahlungL?`L: ${p.einmalzahlungL}`:null,p.einmalzahlungM?`M: ${p.einmalzahlungM}`:null,p.einmalzahlungS?`S: ${p.einmalzahlungS}`:null].filter(Boolean).join(' | ');
+    const mDisp=m!==null?`<span class="${parseFloat(m)>=0?'text-green-600':'text-red-600'} font-bold">${m} €</span>`:'<span class="text-slate-400">n.v.</span>';
+    const ek=p.noEinkaufspreis?'n.v.':`${parseFloat(p.einkaufspreis).toFixed(2)}€`;
+    const vk=p.noVerkaufspreis?'n.v.':`${parseFloat(p.verkaufspreis).toFixed(2)}€`;
+      const stoererPill = p.stoerer ? {highlight:`<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #f59e0b">⭐ Highlight</span>`, flash:`<span class="badge" style="background:#fee2e2;color:#991b1b;border:1px solid #dc2626">⚡ Flash Sale</span>`, abverkauf:`<span class="badge" style="background:#ede9fe;color:#5b21b6;border:1px solid #7c3aed">🔥 Abverkauf</span>`}[p.stoerer]||'' : '';
+      const condPillsAdmin = (() => {
+        const st = 'background:#fef3c7;color:#78350f;border:1px solid #f59e0b';
+        if(p.nurMitTV && p.nurMitOnlineSchutz){
+          const op = (p.nurMitLogik === 'oder') ? 'ODER' : 'UND';
+          return `<span class="badge" style="${st}">🎯 nur mit o2 TV ${op} Online Schutz Plus</span>`;
+        }
+        if(p.nurMitTV)           return `<span class="badge" style="${st}">📺 nur mit o2 TV</span>`;
+        if(p.nurMitOnlineSchutz) return `<span class="badge" style="${st}">🛡️ nur mit Online Schutz Plus</span>`;
+        return '';
+      })();
+    return`<div class="list-item ${exp?'list-item-border-red':'list-item-border-blue'}">
+      <div><div class="font-semibold text-slate-800 text-sm flex flex-wrap items-center gap-2">${esc(p.geraetebezeichnung)} (${esc(p.anbieter)}) ${exp?'<span class="badge badge-red">ABGELAUFEN</span>':''} ${p.dauerhaftAktiv?'<span class="badge badge-green">♾️ Dauerhaft aktiv</span>':''} ${stoererPill} ${condPillsAdmin}</div><div class="text-xs text-slate-500 mt-0.5">EK: ${ek} | VK: ${vk} | Marge: ${mDisp}</div>${ez?`<div class="text-xs text-slate-400 mt-0.5">EZ Mobile: ${esc(ez)}</div>`:''}<div class="text-xs text-slate-400">${esc(p.aktionsbeginn)}${p.dauerhaftAktiv?' – läuft dauerhaft':` bis ${esc(p.aktionsende)}`}</div></div>
+      <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">${exp?`<button onclick='renewPromotion("${p.id}")' class="btn btn-purple btn-sm">30 Tage verlängern</button>`:`<button onclick='editPromotion("${p.id}")' class="btn btn-yellow btn-sm">Bearbeiten</button>`}<button onclick='deletePromotion("${p.id}")' class="btn btn-red btn-sm">Löschen</button></div>
+    </div>`;
+  }).join('');
+}
+
+function renderAdminIncentiveList(list){
+  const el=document.getElementById('admin-incentive-list');
+  updateAdminTabCount('admin-tab-count-incentives',list.length);
+  if(!list.length){el.innerHTML='<p class="text-center text-slate-400 py-6 text-sm">Keine Incentives vorhanden.</p>';return;}
+  el.innerHTML=list.map(p=>{
+    const exp=isExpired(p.incentiveEnd);
+    const sichtbar=typeof p.sichtbar==='boolean'?p.sichtbar:true;
+    return`<div class="list-item ${exp?'list-item-border-red':'list-item-border-purple'}">
+      <div><div class="font-semibold text-slate-800 text-sm flex flex-wrap items-center gap-2">${esc(p.titel||'Incentive')} ${exp?'<span class="badge badge-red">ABGELAUFEN</span>':''} <span class="badge ${sichtbar?'badge-green':'badge-gray'}">${sichtbar?'👁️ Sichtbar':'🚫 Ausgeblendet'}</span></div><div class="text-xs text-slate-500 mt-0.5">${esc((p.bemerkung||'').substring(0,60))}${(p.bemerkung||'').length>60?'…':''}</div><div class="text-xs text-slate-400">Laufzeit: ${esc(p.incentiveStart)} bis ${esc(p.incentiveEnd)}</div></div>
+      <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">
+        <button onclick='toggleIncentiveSichtbar("${p.id}")' class="btn btn-sm ${sichtbar?'btn-ghost':'btn-green'}">${sichtbar?'Ausblenden':'Einblenden'}</button>
+        ${exp?`<button onclick='renewIncentive("${p.id}")' class="btn btn-purple btn-sm">30 Tage verlängern</button>`:`<button onclick='editIncentive("${p.id}")' class="btn btn-yellow btn-sm">Bearbeiten</button>`}
+        <button onclick='deleteIncentive("${p.id}")' class="btn btn-red btn-sm">Löschen</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== USER RENDERING =====
+function renderUserView(promoList,incList,pushList,bundleList,isSingle=false){
+  // --- Push ---
+  const activePush=pushList.filter(p=>!isExpired(p.end));
+  const pushSec=document.getElementById('push-section-user');
+  const pushEl=document.getElementById('user-push-list');
+  if(activePush.length){
+    pushEl.innerHTML=activePush.map(p=>{
+      const bd=p.betrag>0?`${p.betrag.toFixed(2)} €`:'N.A.';
+      return`<div class="push-card"><div style="width:48px;height:48px;background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-size:20px;flex-shrink:0">€</div><div><div class="font-bold text-slate-900 text-sm mb-1">💰 ${esc(p.titel||'Push')} – <span class="text-green-600 text-lg font-black">${bd}</span></div><div class="text-sm text-slate-700 mb-1">${esc(p.bemerkung||'')}</div><div class="text-xs text-slate-400">Gültig: ${esc(p.start)} – ${esc(p.end)}</div></div></div>`;
+    }).join('');
+    if(pushSec)pushSec.classList.remove('hidden');
+  }else{pushEl.innerHTML='';if(pushSec)pushSec.classList.add('hidden');}
+
+  // --- Incentives ---
+  const activeInc=incList.filter(i=>!isExpired(i.incentiveEnd) && (typeof i.sichtbar==='boolean' ? i.sichtbar : true));
+  const incEl=document.getElementById('user-incentive-list');
+  const incSec=document.getElementById('incentive-section-user');
+  if(activeInc.length){
+    incEl.innerHTML=activeInc.map(i=>`
+      <div class="incentive-card"><img src="${esc(i.bildUrl||'')}" onerror="this.src='https://placehold.co/64x64/f3e8ff/7e22ce?text=⭐'" alt="${esc(i.titel||'')}" style="width:64px;height:64px;object-fit:contain;border-radius:10px;background:#f8fafc;border:1px solid #f1f5f9;flex-shrink:0"><div><div class="font-extrabold text-purple-700 mb-1">⭐ ${esc(i.titel||'Incentive')}</div><div class="text-sm text-slate-700 mb-1">${esc(i.bemerkung||'')}</div><div class="text-xs text-slate-400">Aktion: ${esc(i.incentiveStart)} – ${esc(i.incentiveEnd)}</div></div></div>
+    `).join('');
+    if(incSec)incSec.classList.remove('hidden');
+  }else{incEl.innerHTML='<p class="text-center text-slate-400 italic py-6 col-span-full text-sm">Keine aktuellen Incentives.</p>';if(incSec)incSec.classList.remove('hidden');}
+
+  // --- Bundles ---
+  const activeBundles=isSingle?bundleList:bundleList.filter(b=>b.active===true&&!b.legacy&&!isExpired(b.end));
+  const bundleEl=document.getElementById('user-bundle-list');
+  const bundleSec=document.getElementById('bundle-section-header');
+  if(activeBundles.length){
+    // Gruppiere nach Kategorie für saubere Anzeige
+    const bundlesByCategory = {};
+    BUNDLE_CANVAS_CATEGORIES.forEach(c => { bundlesByCategory[c.key] = []; });
+    activeBundles.forEach(b => {
+      const cat = b.categoryKey || 'canvas1';
+      if(!bundlesByCategory[cat]) bundlesByCategory[cat] = [];
+      bundlesByCategory[cat].push(b);
+    });
+
+    const renderBundleCard = b => {
+      const rawImages=Array.isArray(b.images)?b.images.filter(Boolean):[];
+      const inclSim=typeof b.hasSim==='boolean'?b.hasSim:true;
+      const effImgs=inclSim?rawImages.concat([FIXED_SIM_IMAGE_DATAURI]):rawImages;
+      const imagesHtml=effImgs.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:14px">${effImgs.map(img=>`<div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:center;min-height:100px"><img src="${img}" style="max-width:100%;max-height:100px;object-fit:contain" onerror="this.style.display='none'"></div>`).join('')}</div>`:'';
+      const badges=[b.optionOnlineSchutz?`<span class="badge badge-green">🛡️ Online Schutz</span>`:'',b.optionTV?`<span class="badge badge-blue">📺 o2 TV</span>`:'',b.optionCustom?`<span style="display:inline-block;padding:2px 10px;border-radius:100px;font-size:11px;font-weight:700;background:#f3e8ff;color:#7e22ce;border:1px solid #d8b4fe">➕ ${esc(b.optionCustom)}</span>`:''].filter(Boolean).join('');
+      const p24=String(b.preis24??b.angebotspreis??'').trim();const p36=String(b.preis36??'').trim();const once=String(b.einmalkosten??'').trim();
+      const show24=typeof b.show24==='boolean'?b.show24:true;
+      const show36=typeof b.show36==='boolean'?b.show36:false;
+      const opts=[];if(p24&&show24)opts.push({m:24,v:p24});if(p36&&show36)opts.push({m:36,v:p36});
+      let priceHtml='';
+      if(opts.length){const key='bundle_term_'+b.id;let sel=parseInt(localStorage.getItem(key)||'0',10);if(!opts.some(o=>o.m===sel))sel=opts[0].m;const dv=(opts.find(o=>o.m===sel)||opts[0]).v;const selHtml=opts.length>1?`<select style="border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:white;padding:3px 8px;border-radius:6px;font-weight:700;font-size:12px" onchange="window.onBundleTermChange&&window.onBundleTermChange('${b.id}',this.value)">${opts.map(o=>`<option value="${o.m}" ${o.m===sel?'selected':''}>${o.m} Monate</option>`).join('')}</select>`:`<span style="font-size:12px;font-weight:700">${opts[0].m} Monate</span>`;priceHtml=`<div style="background:#dc2626;color:white;border-radius:10px;padding:12px 16px;text-align:center;min-width:130px" data-bundle-id="${b.id}" data-p24="${p24}" data-p36="${p36}"><div style="margin-bottom:4px">${selHtml}</div><div style="font-size:10px;text-transform:uppercase;font-weight:700;opacity:.8">Angebotspreis</div><div id="bundle-price-${b.id}" style="font-size:24px;font-weight:900">${dv} €</div>${once?`<div style="font-size:11px;opacity:.8">Einmalig: ${esc(once)} €</div>`:''}</div>`;}
+      return`<div class="bundle-card">
+        <div class="bundle-header"><div style="font-size:16px;font-weight:800;margin-bottom:6px">📦 ${esc(b.titel||'Bundle')}</div><span style="font-size:11px;background:rgba(255,255,255,.2);border-radius:100px;padding:3px 10px">Gültig bis: ${esc(b.end)}</span></div>
+        <div style="padding:20px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+            <div><div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px">${esc(b.tarifName||'Tarif nicht angegeben')}</div>${badges?`<div style="display:flex;flex-wrap:wrap;gap:6px">${badges}</div>`:''}</div>
+            ${priceHtml}
+          </div>
+          ${imagesHtml}
+          ${b.rechnungsweg?`<div style="background:#eff6ff;border-left:4px solid #1d4ed8;border-radius:0 8px 8px 0;padding:12px;margin-bottom:12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#1d4ed8;margin-bottom:6px">Rechnungsweg / Buchungsprozess</div><div style="font-size:13px;color:#1e3a8a;white-space:pre-line">${esc(b.rechnungsweg)}</div></div>`:''}
+          ${b.shopLink?`<a href="${esc(b.shopLink)}" target="_blank" style="display:block;text-align:center;padding:10px;background:#16a34a;color:white;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;margin-bottom:10px">👉 Zum Angebot</a>`:''}
+          ${b.gutscheincode?`<div style="background:#fef9c3;border:1px dashed #f59e0b;border-radius:8px;padding:10px;text-align:center;font-size:13px;font-weight:700;color:#854d0e;cursor:pointer;font-family:monospace" onclick="copyToClipboard('${esc(b.gutscheincode)}')">🎟️ ${esc(b.gutscheincode)} <span style="font-family:sans-serif;font-weight:400;font-size:11px;opacity:.7">(klicken zum Kopieren)</span></div>`:''}
+        </div>
+      </div>`;
+    };
+
+    // Canvas 1-3: normal (canvas4 = Netzwerk nur für Dashboard, NICHT in Kundenansicht)
+    const mainBundles = activeBundles.filter(b => b.categoryKey !== 'canvas4');
+    const netBundles  = []; // Netzwerk-Kategorie absichtlich ausgeblendet (nur Dashboard-Verknüpfung)
+
+    bundleEl.innerHTML = mainBundles.map(renderBundleCard).join('');
+
+    // Canvas 4 Netzwerk: eigene Sektion
+    let netSecEl = document.getElementById('net-bundle-section');
+    if(!netSecEl){
+      netSecEl = document.createElement('div');
+      netSecEl.id = 'net-bundle-section';
+      netSecEl.style.marginTop = '32px';
+      bundleSec && bundleSec.parentNode && bundleSec.parentNode.insertBefore(netSecEl, bundleSec.nextSibling);
+    }
+    if(netBundles.length){
+      netSecEl.innerHTML = `
+        <div class="section-divider" style="margin-top:16px">
+          <div class="section-icon" style="background:#dbeafe;font-size:18px">📶</div>
+          <h3 style="font-size:18px;font-weight:800;color:#1e293b">Netzwerk — Router & WLAN</h3>
+        </div>
+        <div class="cards-grid-2">${netBundles.map(renderBundleCard).join('')}</div>`;
+      netSecEl.style.display = '';
+    } else {
+      netSecEl.style.display = 'none';
+    }
+
+    if(bundleSec)bundleSec.classList.remove('hidden');
+    bundleEl.classList.remove('hidden');
+  }else{bundleEl.innerHTML='';if(bundleSec)bundleSec.classList.add('hidden');bundleEl.classList.add('hidden');}
+
+  // --- Promotions ---
+  const tocEl=document.getElementById('toc-container');
+  const viewEl=document.getElementById('user-view-content');
+  if(isSingle){viewEl.innerHTML='';if(tocEl)tocEl.innerHTML='';return;}
+  const activePromos=promoList.filter(p=>!isExpired(p.aktionsende,p.dauerhaftAktiv));
+  if(!activePromos.length){viewEl.innerHTML='<p class="text-center text-slate-400 py-10 text-base">Aktuell keine Geräte-Aktionen verfügbar.</p>';if(tocEl){const tg=document.getElementById('toc-grid');if(tg)tg.innerHTML='<div class="col-span-full text-center text-slate-400 py-4 text-sm">Keine Aktionen.</div>';}const ptgEmpty=document.getElementById('print-toc-grid');if(ptgEmpty)ptgEmpty.innerHTML='<div class="col-span-full text-center text-slate-400 py-4 text-sm">Keine Aktionen.</div>';const csEmpty=document.getElementById('print-cover-stats');if(csEmpty)csEmpty.innerHTML=`<div><div class="stat-num">0</div><div class="stat-label">Aktionen</div></div>`;return;}
+
+  const grouped=activePromos.reduce((acc,p)=>{const a=p.anbieter||'Sonstige';if(!acc[a])acc[a]=[];acc[a].push(p);return acc;},{});
+  const anbieterList=Object.keys(grouped).sort();
+
+  // TOC (Bildschirm, inline)
+  if(tocEl){
+    const tg=document.getElementById('toc-grid');
+    if(tg){
+      let tocHtml='';
+      if(activeBundles.length)tocHtml+=`<a href="#bundle-section-header" class="toc-link toc-link-navy">📦 Bundle Angebote (${activeBundles.length})</a>`;
+      tocHtml+=anbieterList.map(a=>`<a href="#anbieter_${a.replace(/[^a-zA-Z0-9]/g,'_')}" class="toc-link">${esc(a)} (${grouped[a].length})</a>`).join('');
+      tg.innerHTML=tocHtml||'<div class="col-span-full text-center text-slate-400 py-4 text-sm">Keine Anbieter.</div>';
+    }
+  }
+
+  // TOC (Print, eigene Seite 2)
+  const ptg=document.getElementById('print-toc-grid');
+  if(ptg){
+    let pTocHtml='';
+    if(activeBundles.length)pTocHtml+=`<a href="#bundle-section-header" class="print-toc-link print-toc-link-navy">📦 Bundle Angebote <span class="print-toc-count">${activeBundles.length}</span></a>`;
+    pTocHtml+=anbieterList.map(a=>`<a href="#anbieter_${a.replace(/[^a-zA-Z0-9]/g,'_')}" class="print-toc-link">${esc(a)} <span class="print-toc-count">${grouped[a].length}</span></a>`).join('');
+    ptg.innerHTML=pTocHtml||'<div class="col-span-full text-center text-slate-400 py-4 text-sm">Keine Aktionen.</div>';
+  }
+
+  // Cover-Statistiken (Print Seite 1)
+  const coverStats=document.getElementById('print-cover-stats');
+  if(coverStats){
+    const totalAktionen=activePromos.length;
+    const totalAnbieter=anbieterList.length;
+    const totalBundles=activeBundles.length;
+    coverStats.innerHTML=`
+      <div><div class="stat-num">${totalAktionen}</div><div class="stat-label">Aktionen</div></div>
+      <div><div class="stat-num">${totalAnbieter}</div><div class="stat-label">Anbieter</div></div>
+      <div><div class="stat-num">${totalBundles}</div><div class="stat-label">Bundles</div></div>
+    `;
+  }
+
+  // Promotion groups
+  viewEl.innerHTML=anbieterList.map(anbieter=>{
+    const safeId='anbieter_'+anbieter.replace(/[^a-zA-Z0-9]/g,'_');
+    const cards=grouped[anbieter].map(p=>{
+      const m=calculateMargin(p.einkaufspreis,p.verkaufspreis,p.noEinkaufspreis,p.noVerkaufspreis);
+      const tariffs=[p.mobile?'Mobilfunk':'',p.myhome?'Festnetz':'',p.data?'Datentarif':''].filter(Boolean);
+      const ezMobile=[p.einmalzahlungXL?`<div><b>XL:</b> ${esc(p.einmalzahlungXL)}</div>`:'',p.einmalzahlungL?`<div><b>L:</b> ${esc(p.einmalzahlungL)}</div>`:'',p.einmalzahlungM?`<div><b>M:</b> ${esc(p.einmalzahlungM)}</div>`:'',p.einmalzahlungS?`<div><b>S:</b> ${esc(p.einmalzahlungS)}</div>`:''].filter(Boolean);
+      const ezHome=[p.einmalzahlungHomeXL?`<div><b>XL:</b> ${esc(p.einmalzahlungHomeXL)}</div>`:'',p.einmalzahlungHomeL?`<div><b>L:</b> ${esc(p.einmalzahlungHomeL)}</div>`:'',p.einmalzahlungHomeM?`<div><b>M:</b> ${esc(p.einmalzahlungHomeM)}</div>`:'',p.einmalzahlungHomeS?`<div><b>S:</b> ${esc(p.einmalzahlungHomeS)}</div>`:''].filter(Boolean);
+      const mHTML=m===null?'<span style="color:#94a3b8">n.v.</span>':`<span style="color:${parseFloat(m)>=0?'#16a34a':'#dc2626'};font-weight:800">${m} €</span>`;
+      const stoererLabels = {highlight:'⭐ Highlight', flash:'⚡ Flash Sale', abverkauf:'🔥 Abverkauf'};
+      const stoererRibbon = p.stoerer && stoererLabels[p.stoerer]
+        ? `<div class="stoerer-ribbon ${p.stoerer}"><span>${stoererLabels[p.stoerer]}</span></div>`
+        : '';
+
+      // Verkaufs-Bedingungen ("Verkauf nur mit …")
+      let condHtml = '';
+      if(p.nurMitTV || p.nurMitOnlineSchutz){
+        const pillTV = '<span class="promo-cond-pill">📺 o2 TV</span>';
+        const pillOS = '<span class="promo-cond-pill">🛡️ Online Schutz Plus</span>';
+        let inner;
+        if(p.nurMitTV && p.nurMitOnlineSchutz){
+          const op = (p.nurMitLogik === 'oder') ? 'oder' : 'und';
+          inner = `${pillTV}<span class="promo-cond-op">${op}</span>${pillOS}`;
+        } else {
+          inner = p.nurMitTV ? pillTV : pillOS;
+        }
+        condHtml = `<div class="promo-cond"><div class="promo-cond-title">⚠️ Verkauf nur mit</div><div class="promo-cond-list">${inner}</div></div>`;
+      }
+      return`<div class="promo-card" style="position:relative">
+        ${stoererRibbon}
+        <button class="qp-edit-btn" title="Preise bearbeiten" onclick="event.stopPropagation();qpOpen('${p.id}')">✏️</button>
+        <div class="promo-card-img">
+          <img src="${esc(p.bildUrl||'')}" onerror="this.src='https://placehold.co/300x140/e2e8f0/94a3b8?text=${encodeURIComponent(p.geraetebezeichnung||'Gerät')}'" alt="${esc(p.geraetebezeichnung||'')}">
+          ${!p.noVerkaufspreis?`<span class="promo-vk-badge qp-price-zone" data-qp-id="${p.id}">${parseFloat(p.verkaufspreis).toFixed(2)} €</span>`:''}
+        </div>
+        <div class="promo-card-body">
+          <div style="font-size:17px;font-weight:800;color:#0f172a;line-height:1.2;margin-bottom:4px">${esc(p.geraetebezeichnung||'–')}</div>
+          <div style="font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">${esc(p.anbieter||'')}</div>
+          <div style="font-size:11px;color:#94a3b8;margin-bottom:8px">${p.dauerhaftAktiv?'♾️ dauerhaft aktiv':`📅 ${esc(p.aktionsbeginn)} – ${esc(p.aktionsende)}`}</div>
+          ${tariffs.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">${tariffs.map(t=>`<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:#dbeafe;color:#1d4ed8">${t}</span>`).join('')}</div>`:''}
+          <div style="font-size:12px;color:#374151;margin-bottom:10px">
+            ${p.anschlussbefreiung?'<div>✅ Anschlussbefreiung</div>':''}
+            ${p.zusatzpush?'<div>⚡ Zusätzlicher Push</div>':''}
+            ${p.sonderprovision?`<div>💰 Sonderprovision: ${esc(p.sonderprovision)}</div>`:''}
+            ${p.hwBenefit24?`<div><a href="${esc(p.hwBenefit24)}" target="_blank" style="color:#1d4ed8">🔗 HW-Benefit 24M</a></div>`:''}
+            ${p.hwBenefit36?`<div><a href="${esc(p.hwBenefit36)}" target="_blank" style="color:#1d4ed8">🔗 HW-Benefit 36M</a></div>`:''}
+          </div>
+          ${condHtml}
+          ${p.bemerkung?`<div style="font-size:11px;color:#6b7280;font-style:italic;border-left:3px solid #e2e8f0;padding:6px 10px;border-radius:0 6px 6px 0;margin-bottom:10px">${esc(p.bemerkung)}</div>`:''}
+          <div class="qp-price-zone" data-qp-id="${p.id}" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-top:auto">
+            ${ezMobile.length?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:4px">EZ o2 Mobile (Kunde)</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:11px;color:#374151;margin-bottom:6px">${ezMobile.join('')}</div>`:''}
+            ${ezHome.length?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:4px;margin-top:4px">EZ o2 My Home (Kunde)</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:11px;color:#374151;margin-bottom:6px">${ezHome.join('')}</div>`:''}
+            <div class="promo-ek-row" style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding-top:6px;border-top:1px solid #f1f5f9">
+              <span class="blurbox" onclick="revealBlur(this,event)" title="EK anzeigen">EK: <span class="blur-val">${p.noEinkaufspreis?'n.v.':`${parseFloat(p.einkaufspreis||0).toFixed(2)} €`}</span></span>
+              <span class="blurbox" onclick="revealBlur(this,event)" title="Marge anzeigen">Marge: <span class="blur-val">${mHTML}</span></span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    return`<div class="anbieter-section" id="${safeId}" style="margin-top:40px;scroll-margin-top:90px">
+      <div class="anbieter-header">${esc(anbieter)} <span style="font-size:13px;font-weight:400;opacity:.75">(${grouped[anbieter].length} Aktionen)</span></div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:20px">
+        <div class="cards-grid">${cards}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== STÖRER =====
+window.setStoerer = val => {
+  document.getElementById('stoerer').value = val;
+  ['none','highlight','flash','abverkauf'].forEach(k => {
+    const btn = document.getElementById('stoerer-'+k);
+    if(!btn) return;
+    btn.classList.remove('active-highlight','active-flash','active-abverkauf');
+    if(k !== 'none') btn.style.borderColor = '';
+  });
+  if(val) {
+    const btn = document.getElementById('stoerer-'+val);
+    if(btn) btn.classList.add('active-'+val);
+  }
+};
+
+// ===== ADMIN EDIT SAVE PATCH v49 =====
+// Fix: Beim Nachbearbeiten darf ein Datensatz nicht still verloren gehen,
+// wenn die Bearbeitungs-ID durch Cloud-/Reload-/Filterzustände nicht gefunden wird.
+const __sameId = (a,b) => String(a||'') === String(b||'');
+
+// ===== CRUD ACTIONS =====
+window.savePushProvision=event=>{
+  event.preventDefault();const form=event.target;
+  const bv=parseFloat(form.pushBetrag.value);if(isNaN(bv)||bv<=0){showMessage('Bitte gültigen Betrag > 0 eingeben.',true);return;}
+  const data={id:form.dataset.editingId||generateId(),titel:form.pushTitel.value||'Zusatz-Push',betrag:bv,start:form.pushStart.value,end:form.pushEnd.value,bemerkung:form.pushBemerkung.value,createdAt:form.dataset.editingId?(pushProvisions.find(p=>__sameId(p.id,form.dataset.editingId))?.createdAt||new Date().toISOString()):new Date().toISOString(),updatedAt:new Date().toISOString()};
+  let clog=null;
+  if(!form.dataset.editingId){clog=`💰 Neuer PUSH: ${data.titel} (${data.betrag.toFixed(2)}€) ab ${data.start}`;}
+  else{const op=pushProvisions.find(p=>__sameId(p.id,form.dataset.editingId));if(op&&op.betrag!==data.betrag){clog=data.betrag>op.betrag?`💰 PUSH ERHÖHT: ${data.titel} jetzt ${data.betrag.toFixed(2)}€`:`📉 Push gesenkt: ${data.titel} auf ${data.betrag.toFixed(2)}€`;}}
+  if(form.dataset.editingId){const i=pushProvisions.findIndex(p=>__sameId(p.id,form.dataset.editingId));if(i!==-1){pushProvisions[i]=data;showMessage('Push aktualisiert!');}else{pushProvisions.push(data);showMessage('Push neu gespeichert – Bearbeitungs-ID war nicht mehr in der Liste.');}}else{pushProvisions.push(data);showMessage('Push gespeichert!');}
+  if(clog)addRecentChange(clog);saveData();form.reset();delete form.dataset.editingId;document.getElementById('push-submit-btn').textContent='Push Speichern';
+};
+window.deletePushProvision=id=>{if(!confirm('Wirklich löschen?'))return;pushProvisions=pushProvisions.filter(p=>!__sameId(p.id,id));saveData();showMessage('Push gelöscht.');};
+window.editPushProvision=id=>{const d=pushProvisions.find(p=>__sameId(p.id,id));if(!d)return;const f=document.getElementById('push-form');f.pushTitel.value=d.titel||'';f.pushBetrag.value=d.betrag||0;f.pushStart.value=d.start||'';f.pushEnd.value=d.end||'';f.pushBemerkung.value=d.bemerkung||'';f.dataset.editingId=id;document.getElementById('push-submit-btn').textContent='Änderungen Speichern';f.scrollIntoView({behavior:'smooth'});};
+
+window.saveBundle=event=>{
+  event.preventDefault();const form=event.target;
+  const slotId=(form.bundleSlot&&form.bundleSlot.value)?form.bundleSlot.value:'';
+  if(!slotId){showMessage('Bitte einen Bundle-Slot auswählen.',true);return;}
+  const meta=__getSlotMeta(slotId);if(!meta){showMessage('Ungültiger Bundle-Slot.',true);return;}
+  if(!form.bundleTitel.value){showMessage('Bitte Bundle-Bezeichnung eingeben.',true);return;}
+  const imageInputs=document.querySelectorAll('#bundle-images-container input');
+  const images=Array.from(imageInputs).map(i=>i.value.trim()).filter(u=>u.length>0);
+  const p24=String(form.bundlePreis24?.value||form.bundlePreis?.value||'').trim();const p36=String(form.bundlePreis36?.value||'').trim();const once=String(form.bundleEinmalkosten?.value||'').trim();
+  const show24=form.bundleShow24?form.bundleShow24.checked:true;
+  const show36=form.bundleShow36?form.bundleShow36.checked:false;
+  if(form.bundlePreis)form.bundlePreis.value=p24;
+  const existing=bundles.find(b=>__sameId(b.id,slotId));
+  const wasExisting=!!(existing&&existing.titel);
+  const data={id:slotId,__fixedSlot:true,legacy:false,categoryKey:meta.categoryKey,categoryLabel:__getCategoryLabel(meta.categoryKey),active:!!form.bundleActive?.checked,titel:form.bundleTitel.value,tarifName:form.bundleTarifName.value,angebotspreis:p24,preis24:p24,preis36:p36,einmalkosten:once,show24:show24,show36:show36,hasSim:typeof form.bundleHasSim!=='undefined'?!!form.bundleHasSim.checked:true,optionOnlineSchutz:form.bundleOptionOnlineSchutz.checked,optionTV:form.bundleOptionTV.checked,optionCustom:form.bundleOptionCustom.value,images,shopLink:form.bundleShopLink.value,gutscheincode:form.bundleGutschein.value,rechnungsweg:form.bundleRechnungsweg.value,start:form.bundleStart.value,end:form.bundleEnd.value,createdAt:existing?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+  const idx=bundles.findIndex(b=>__sameId(b.id,slotId));if(idx!==-1){bundles[idx]=data;showMessage(`✅ "${data.titel}" (${meta.label}) aktualisiert!`);}else{bundles.push(data);showMessage(`✅ "${data.titel}" in ${meta.label} gespeichert!`);}
+  saveData();
+
+  // Beim Bearbeiten im aktuellen Slot bleiben, damit die Änderung sofort sichtbar ist.
+  if(wasExisting){loadBundleSlotIntoForm(slotId);return;}
+
+  // Nur bei neuen/leeren Slots automatisch zum nächsten freien Slot springen.
+  const curIdx=FIXED_BUNDLE_SLOTS.findIndex(s=>__sameId(s.id,slotId));
+  let nextSlot=null;
+  for(let i=curIdx+1;i<FIXED_BUNDLE_SLOTS.length;i++){
+    const s=FIXED_BUNDLE_SLOTS[i];
+    const existingNext=bundles.find(b=>__sameId(b.id,s.id));
+    if(!existingNext||!existingNext.titel){nextSlot=s;break;}
+  }
+  const slotSel=document.getElementById('bundleSlot');
+  if(nextSlot && slotSel){
+    slotSel.value=nextSlot.id;
+    loadBundleSlotIntoForm(nextSlot.id);
+  }else{
+    // Kein leerer Folge-Slot gefunden: aktuellen Slot einfach neu laden, damit der gespeicherte Stand sichtbar ist
+    loadBundleSlotIntoForm(slotId);
+  }
+};
+window.deleteBundle=id=>{const i=bundles.findIndex(b=>__sameId(b.id,id));if(i===-1)return;bundles[i].active=false;saveData();showMessage('Bundle deaktiviert.');};
+window.toggleBundleActive=id=>{const i=bundles.findIndex(b=>__sameId(b.id,id));if(i===-1)return;bundles[i].active=!bundles[i].active;saveData();showMessage(bundles[i].active?'Bundle aktiviert.':'Bundle deaktiviert.');};
+window.loadBundleSlotIntoForm=slotId=>{
+  const f=document.getElementById('bundle-form');if(!f)return;
+  const d=bundles.find(b=>__sameId(b.id,slotId))||{};
+  if(f.bundleActive)f.bundleActive.checked=typeof d.active==='boolean'?d.active:true;
+  if(f.bundleShow24)f.bundleShow24.checked=typeof d.show24==='boolean'?d.show24:true;
+  if(f.bundleShow36)f.bundleShow36.checked=typeof d.show36==='boolean'?d.show36:false;
+  f.bundleTitel.value=d.titel||'';f.bundleTarifName.value=d.tarifName||'';
+  if(f.bundlePreis24)f.bundlePreis24.value=d.preis24||d.angebotspreis||'';
+  if(f.bundlePreis36)f.bundlePreis36.value=d.preis36||'';
+  if(f.bundleEinmalkosten)f.bundleEinmalkosten.value=d.einmalkosten||'';
+  if(f.bundlePreis)f.bundlePreis.value=d.preis24||d.angebotspreis||'';
+  f.bundleOptionOnlineSchutz.checked=!!d.optionOnlineSchutz;f.bundleOptionTV.checked=!!d.optionTV;
+  if(f.bundleHasSim)f.bundleHasSim.checked=typeof d.hasSim==='boolean'?d.hasSim:true;
+  f.bundleOptionCustom.value=d.optionCustom||'';
+  const cont=document.getElementById('bundle-images-container');cont.innerHTML='';
+  if(Array.isArray(d.images)&&d.images.length>0)d.images.forEach(u=>addBundleImageField(u));else addBundleImageField();
+  f.bundleShopLink.value=d.shopLink||'';f.bundleGutschein.value=d.gutscheincode||'';f.bundleRechnungsweg.value=d.rechnungsweg||'';f.bundleStart.value=d.start||'';f.bundleEnd.value=d.end||'';
+  document.getElementById('bundle-submit-btn').textContent=(d.titel?'Änderungen Speichern':'Bundle Slot Speichern');
+};
+window.onBundleSlotChange=()=>{
+  const sel=document.getElementById('bundleSlot');if(!sel||!sel.value)return;
+  loadBundleSlotIntoForm(sel.value);
+};
+window.editBundle=id=>{
+  const sel=document.getElementById('bundleSlot');
+  if(sel){populateBundleSlotOptions();sel.value=id;}
+  loadBundleSlotIntoForm(id);
+  document.getElementById('bundle-form').scrollIntoView({behavior:'smooth'});
+};
+window.addBundleImageField=(value='')=>{
+  const cont=document.getElementById('bundle-images-container');const wrap=document.createElement('div');wrap.className='flex gap-2 items-center';
+  const inp=document.createElement('input');inp.type='url';inp.value=value;inp.placeholder='https://beispiel.de/bild.jpg';inp.className='form-input flex-grow';
+  const rm=document.createElement('button');rm.type='button';rm.innerHTML='🗑️';rm.className='btn btn-red btn-sm';rm.onclick=()=>wrap.remove();
+  wrap.appendChild(inp);wrap.appendChild(rm);cont.appendChild(wrap);
+};
+
+window.savePromotion=event=>{
+  event.preventDefault();const form=event.target;
+  let anbieter=form.anbieterSelect.value;if(anbieter==='Freiertext')anbieter=form.anbieterFreiertext.value;if(!anbieter){showMessage('Bitte Anbieter eingeben.',true);return;}
+  if(!form.geraetebezeichnung.value){showMessage('Bitte Gerätebezeichnung eingeben.',true);return;}
+  const dauerhaftAktiv=form.dauerhaftAktiv.checked;
+  if(!dauerhaftAktiv && !form.aktionsende.value){showMessage('Bitte "Gültig bis" eingeben oder "dauerhaft" aktivieren.',true);return;}
+  // Preise nur validieren wenn nicht n.v.
+  if(!form.noEinkaufspreis.checked && (form.einkaufspreis.value===''||isNaN(parseFloat(form.einkaufspreis.value)))){showMessage('Bitte Einkaufspreis eingeben oder "n.v." aktivieren.',true);return;}
+  if(!form.noVerkaufspreis.checked && (form.verkaufspreis.value===''||isNaN(parseFloat(form.verkaufspreis.value)))){showMessage('Bitte Verkaufspreis eingeben oder "n.v." aktivieren.',true);return;}
+  const data={id:form.dataset.editingId||generateId(),anbieter,geraetebezeichnung:form.geraetebezeichnung.value,aktionsbeginn:form.aktionsbeginn.value,aktionsende:form.aktionsende.value,dauerhaftAktiv,einkaufspreis:parseFloat(form.einkaufspreis.value)||0,verkaufspreis:parseFloat(form.verkaufspreis.value)||0,noEinkaufspreis:form.noEinkaufspreis.checked,noVerkaufspreis:form.noVerkaufspreis.checked,einmalzahlungXL:form.einmalzahlungXL.value,einmalzahlungL:form.einmalzahlungL.value,einmalzahlungM:form.einmalzahlungM.value,einmalzahlungS:form.einmalzahlungS.value,einmalzahlungHomeXL:form.einmalzahlungHomeXL.value,einmalzahlungHomeL:form.einmalzahlungHomeL.value,einmalzahlungHomeM:form.einmalzahlungHomeM.value,einmalzahlungHomeS:form.einmalzahlungHomeS.value,mobile:form.mobile.checked,myhome:form.myhome.checked,data:form.data.checked,anschlussbefreiung:form.anschlussbefreiung.checked,zusatzpush:form.zusatzpush.checked,sonderprovision:form.sonderprovision.value,stoerer:form.stoerer?form.stoerer.value:'',bemerkung:form.bemerkung.value,bildUrl:form.bildUrl.value,hwBenefit24:form.hwBenefit24.value,hwBenefit36:form.hwBenefit36.value,createdAt:form.dataset.editingId?(promotions.find(p=>__sameId(p.id,form.dataset.editingId))?.createdAt||new Date().toISOString()):new Date().toISOString(),updatedAt:new Date().toISOString()};
+  const changesLog=[];
+  // Quick-Edit-Felder (nurMitTV / nurMitOnlineSchutz) werden im grossen Formular
+  // nicht abgefragt -> beim Bearbeiten aus dem alten Datensatz uebernehmen,
+  // damit sie nicht still ueberschrieben werden.
+  if(form.dataset.editingId){
+    const prev=promotions.find(p=>__sameId(p.id,form.dataset.editingId));
+    if(prev){
+      data.nurMitTV           = !!prev.nurMitTV;
+      data.nurMitOnlineSchutz = !!prev.nurMitOnlineSchutz;
+      data.nurMitLogik        = (prev.nurMitLogik === 'oder') ? 'oder' : 'und';
+    }
+  }
+  if(form.dataset.editingId){const old=promotions.find(p=>__sameId(p.id,form.dataset.editingId));if(old){const op=parseFloat(old.verkaufspreis),np=parseFloat(data.verkaufspreis);if(!data.noVerkaufspreis&&!old.noVerkaufspreis){if(np<op)changesLog.push(`🔥 Preissturz: ${data.geraetebezeichnung} jetzt ${np.toFixed(2)} €!`);else if(np>op)changesLog.push(`📈 Preisanstieg: ${data.geraetebezeichnung} jetzt ${np.toFixed(2)} €.`);}}const i=promotions.findIndex(p=>__sameId(p.id,form.dataset.editingId));if(i!==-1){promotions[i]=data;showMessage('Aktion aktualisiert!');}else{promotions.push(data);showMessage('Aktion neu gespeichert – Bearbeitungs-ID war nicht mehr in der Liste.');}}
+  else{promotions.push(data);changesLog.push(`✨ Neu: ${data.geraetebezeichnung} (${data.anbieter}) für ${data.noVerkaufspreis?'Preis a.A.':`${parseFloat(data.verkaufspreis).toFixed(2)} €`}`);showMessage('Aktion gespeichert!');}
+  changesLog.forEach(l=>addRecentChange(l));saveData();form.reset();setStoerer('');delete form.dataset.editingId;document.getElementById('submit-btn').textContent='Aktion Speichern';toggleFreeText(false);togglePriceInput('EK',false);togglePriceInput('VK',false);toggleDauerhaftAktiv(false);
+};
+window.deletePromotion=id=>{if(!confirm('Aktion wirklich löschen?'))return;promotions=promotions.filter(p=>!__sameId(p.id,id));saveData();showMessage('Aktion gelöscht.');};
+window.renewPromotion=id=>{const i=promotions.findIndex(p=>__sameId(p.id,id));if(i===-1)return;const d=new Date();d.setDate(d.getDate()+30);const yy=d.getFullYear(),mm=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');promotions[i].aktionsende=`${yy}-${mm}-${dd}`;saveData();showMessage(`Verlängert bis ${dd}.${mm}.${yy}!`);};
+window.editPromotion=id=>{
+  const d=promotions.find(p=>__sameId(p.id,id));if(!d)return;const f=document.getElementById('promotion-form');
+  if(predefinedProviders.includes(d.anbieter)&&d.anbieter!=='Freiertext'){f.anbieterSelect.value=d.anbieter;f.anbieterFreiertext.value='';toggleFreeText(false);}else{f.anbieterSelect.value='Freiertext';f.anbieterFreiertext.value=d.anbieter;toggleFreeText(true);}
+  f.geraetebezeichnung.value=d.geraetebezeichnung||'';f.aktionsbeginn.value=d.aktionsbeginn||'';f.aktionsende.value=d.aktionsende||'';
+  f.dauerhaftAktiv.checked=!!d.dauerhaftAktiv;toggleDauerhaftAktiv(!!d.dauerhaftAktiv);
+  f.einkaufspreis.value=d.einkaufspreis||0;f.verkaufspreis.value=d.verkaufspreis||0;
+  f.noEinkaufspreis.checked=!!d.noEinkaufspreis;f.noVerkaufspreis.checked=!!d.noVerkaufspreis;
+  togglePriceInput('EK',!!d.noEinkaufspreis);togglePriceInput('VK',!!d.noVerkaufspreis);
+  f.einmalzahlungXL.value=d.einmalzahlungXL||'';f.einmalzahlungL.value=d.einmalzahlungL||'';f.einmalzahlungM.value=d.einmalzahlungM||'';f.einmalzahlungS.value=d.einmalzahlungS||'';
+  f.einmalzahlungHomeXL.value=d.einmalzahlungHomeXL||'';f.einmalzahlungHomeL.value=d.einmalzahlungHomeL||'';f.einmalzahlungHomeM.value=d.einmalzahlungHomeM||'';f.einmalzahlungHomeS.value=d.einmalzahlungHomeS||'';
+  f.mobile.checked=d.mobile||false;f.myhome.checked=d.myhome||false;f.data.checked=d.data||false;
+  f.anschlussbefreiung.checked=d.anschlussbefreiung||false;f.zusatzpush.checked=d.zusatzpush||false;
+  f.sonderprovision.value=d.sonderprovision||'';f.bemerkung.value=d.bemerkung||'';
+  setStoerer(d.stoerer||'');
+  f.bildUrl.value=d.bildUrl||'';f.hwBenefit24.value=d.hwBenefit24||'';f.hwBenefit36.value=d.hwBenefit36||'';
+  f.dataset.editingId=id;document.getElementById('submit-btn').textContent='Änderungen Speichern';window.scrollTo({top:0,behavior:'smooth'});
+};
+window.saveIncentive=event=>{
+  event.preventDefault();const form=event.target;
+  const data={id:form.dataset.editingId||generateId(),titel:form.incentiveTitel.value,incentiveStart:form.incentiveStart.value,incentiveEnd:form.incentiveEnd.value,bildUrl:form.incentiveBildUrl.value,bemerkung:form.incentiveBemerkung.value,sichtbar:form.incentiveSichtbar?form.incentiveSichtbar.checked:true,priority:1,createdAt:form.dataset.editingId?(incentives.find(i=>__sameId(i.id,form.dataset.editingId))?.createdAt||new Date().toISOString()):new Date().toISOString(),updatedAt:new Date().toISOString()};
+  if(!form.dataset.editingId)addRecentChange(`⭐ Neues Incentive: ${data.titel}`);
+  if(form.dataset.editingId){const i=incentives.findIndex(x=>__sameId(x.id,form.dataset.editingId));if(i!==-1){incentives[i]=data;showMessage('Incentive aktualisiert!');}else{incentives.push(data);showMessage('Incentive neu gespeichert – Bearbeitungs-ID war nicht mehr in der Liste.');}}else{incentives.push(data);showMessage('Incentive gespeichert!');}
+  saveData();form.reset();delete form.dataset.editingId;document.getElementById('incentive-submit-btn').textContent='Incentive Speichern';
+};
+window.deleteIncentive=id=>{if(!confirm('Löschen?'))return;incentives=incentives.filter(i=>!__sameId(i.id,id));saveData();showMessage('Incentive gelöscht.');};
+window.toggleIncentiveSichtbar=id=>{const i=incentives.findIndex(x=>__sameId(x.id,id));if(i===-1)return;const cur=typeof incentives[i].sichtbar==='boolean'?incentives[i].sichtbar:true;incentives[i].sichtbar=!cur;saveData();showMessage(incentives[i].sichtbar?'Incentive eingeblendet.':'Incentive ausgeblendet.');};
+window.editIncentive=id=>{const d=incentives.find(i=>__sameId(i.id,id));if(!d)return;const f=document.getElementById('incentive-form');f.incentiveTitel.value=d.titel||'';f.incentiveStart.value=d.incentiveStart||'';f.incentiveEnd.value=d.incentiveEnd||'';f.incentiveBildUrl.value=d.bildUrl||'';f.incentiveBemerkung.value=d.bemerkung||'';if(f.incentiveSichtbar)f.incentiveSichtbar.checked=typeof d.sichtbar==='boolean'?d.sichtbar:true;f.dataset.editingId=id;document.getElementById('incentive-submit-btn').textContent='Änderungen Speichern';f.scrollIntoView({behavior:'smooth'});};
+window.renewIncentive=id=>{const i=incentives.findIndex(x=>__sameId(x.id,id));if(i===-1)return;const d=new Date();d.setDate(d.getDate()+30);const yy=d.getFullYear(),mm=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');incentives[i].incentiveEnd=`${yy}-${mm}-${dd}`;saveData();showMessage(`Incentive verlängert bis ${dd}.${mm}.${yy}!`);};
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded',()=>{
+  // Set print date + automatisch generierter Monat/Jahr fürs Titelblatt
+  const now=new Date();
+  const dt=now.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const monthName=now.toLocaleDateString('de-DE',{month:'long'});
+  const yearNum=now.getFullYear();
+  const pht=document.getElementById('print-header-title');if(pht)pht.textContent=`Verkaufsmappe ${monthName} ${yearNum}`;
+  const pcd=document.getElementById('print-cover-date');if(pcd)pcd.textContent=`Stand: ${dt}`;
+  const pcm=document.getElementById('print-cover-month');if(pcm)pcm.textContent=monthName;
+  const pcy=document.getElementById('print-cover-year');if(pcy)pcy.textContent=yearNum;
+
+  // Init tabs
+  try{
+    const saved=sessionStorage.getItem('ADMIN_ACTIVE_TAB')||'push';
+    setAdminTab(saved);
+  }catch(e){setAdminTab('push');}
+
+  // Load data
+  try{loadData();}catch(e){console.warn(e);}
+  try{trackAndDisplayVisits();}catch(e){}
+  try{switchView();}catch(e){}
+  try{toggleFreeText(false);}catch(e){}
+  try{addBundleImageField();}catch(e){}
+  try{populateBundleSlotOptions();const bsSel=document.getElementById('bundleSlot');if(bsSel&&bsSel.value)loadBundleSlotIntoForm(bsSel.value);}catch(e){}
+
+  // Margin preview
+  const ek=document.getElementById('einkaufspreis');
+  const vk=document.getElementById('verkaufspreis');
+  if(ek)ek.addEventListener('input',updateMarginPreview);
+  if(vk)vk.addEventListener('input',updateMarginPreview);
+  updateMarginPreview();
+
+  // Currency formatting
+  ['einmalzahlungXL','einmalzahlungL','einmalzahlungM','einmalzahlungS','einmalzahlungHomeXL','einmalzahlungHomeL','einmalzahlungHomeM','einmalzahlungHomeS','sonderprovision'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.addEventListener('blur',()=>formatCurrencyInput(el));
+  });
+
+  // Storage events (multi-tab sync)
+  window.addEventListener('storage',e=>{
+    if([STORAGE_KEY_PROMOTIONS,STORAGE_KEY_INCENTIVES,STORAGE_KEY_VISITS,STORAGE_KEY_PUSH,STORAGE_KEY_BUNDLES,STORAGE_KEY_PDF].includes(e.key)){
+      window.__lsReloadT&&clearTimeout(window.__lsReloadT);
+      window.__lsReloadT=setTimeout(()=>reloadFromLocalStorageOnly(),150);
+    }
+  });
+});
+</script>
+
+<!-- ================= QUICK PRICE EDIT (Admin) ================= -->
+<div class="qp-overlay" id="qp-overlay">
+  <div class="qp-modal" role="dialog" aria-modal="true">
+    <div class="qp-head">
+      <div>
+        <div class="qp-sub">Schnell-Bearbeitung · nur Preise</div>
+        <h3 id="qp-title">Gerät</h3>
+      </div>
+      <button class="qp-close" onclick="qpClose()" aria-label="Schließen">✕</button>
+    </div>
+    <div class="qp-body">
+
+      <div class="qp-group">
+        <div class="qp-group-title">💶 Verkaufspreis & Einkaufspreis</div>
+        <div class="qp-grid">
+          <div class="qp-field">
+            <label>Verkaufspreis (VK, brutto)</label>
+            <span class="qp-input-wrap">
+              <input type="number" step="0.01" inputmode="decimal" id="qp-vk" placeholder="0,00" oninput="qpUpdateMarge()">
+              <span class="qp-cur">€</span>
+            </span>
+            <label class="qp-check"><input type="checkbox" id="qp-novk" onchange="qpToggleDisabled()"> nicht verfügbar (n.v.)</label>
+          </div>
+          <div class="qp-field">
+            <label>Einkaufspreis (EK, netto)</label>
+            <span class="qp-input-wrap">
+              <input type="number" step="0.01" inputmode="decimal" id="qp-ek" placeholder="0,00" oninput="qpUpdateMarge()">
+              <span class="qp-cur">€</span>
+            </span>
+            <label class="qp-check"><input type="checkbox" id="qp-noek" onchange="qpToggleDisabled()"> nicht verfügbar (n.v.)</label>
+          </div>
+        </div>
+        <div class="qp-marge na" id="qp-marge">Marge: –</div>
+      </div>
+
+      <div class="qp-group">
+        <div class="qp-group-title">📱 EZ o2 Mobile (Kunde)</div>
+        <div class="qp-grid">
+          <div class="qp-field"><label>XL</label><span class="qp-input-wrap"><input type="text" inputmode="decimal" id="qp-ez-xl" placeholder="—"><span class="qp-cur">€</span></span></div>
+          <div class="qp-field"><label>L</label><span class="qp-input-wrap"><input type="text" inputmode="decimal" id="qp-ez-l" placeholder="—"><span class="qp-cur">€</span></span></div>
+          <div class="qp-field"><label>M</label><span class="qp-input-wrap"><input type="text" inputmode="decimal" id="qp-ez-m" placeholder="—"><span class="qp-cur">€</span></span></div>
+          <div class="qp-field"><label>S</label><span class="qp-input-wrap"><input type="text" inputmode="decimal" id="qp-ez-s" placeholder="—"><span class="qp-cur">€</span></span></div>
+        </div>
+      </div>
+
+      <div class="qp-group">
+        <div class="qp-group-title">🏠 EZ o2 My Home (Kunde)</div>
+        <div class="qp-grid">
+          <div class="qp-field"><label>XL</label><span class="qp-input-wrap"><input type="text" inputmode="decimal" id="qp-hz-xl" placeholder="—"><span class="qp-cur">€</span></span></div>
+          <div class="qp-field"><label>L</label><span class="qp-input-wrap"><input type="text" inputmode="decimal" id="qp-hz-l" placeholder="—"><span class="qp-cur">€</span></span></div>
+          <div class="qp-field"><label>M</label><span class="qp-input-wrap"><input type="text" inputmode="decimal" id="qp-hz-m" placeholder="—"><span class="qp-cur">€</span></span></div>
+          <div class="qp-field"><label>S</label><span class="qp-input-wrap"><input type="text" inputmode="decimal" id="qp-hz-s" placeholder="—"><span class="qp-cur">€</span></span></div>
+        </div>
+      </div>
+
+      <div class="qp-group" style="margin-bottom:4px">
+        <div class="qp-group-title" style="color:#b45309">🎯 Verkauf nur mit … (Bedingung)</div>
+        <div class="qp-cond-box">
+          <label class="qp-cond-row" id="qp-row-tv">
+            <input type="checkbox" id="qp-only-tv" onchange="qpSyncCondRows()">
+            <span>📺 Verkauf nur mit <b>o2 TV</b></span>
+          </label>
+          <label class="qp-cond-row" id="qp-row-os">
+            <input type="checkbox" id="qp-only-os" onchange="qpSyncCondRows()">
+            <span>🛡️ Verkauf nur mit <b>Online Schutz Plus</b></span>
+          </label>
+
+          <div class="qp-logic qp-logic-off" id="qp-logic">
+            <div class="qp-logic-label">Wie sind beide verknüpft?</div>
+            <div class="qp-logic-btns">
+              <button type="button" class="qp-logic-btn" id="qp-logic-und" onclick="qpSetLogic('und')">
+                UND<small>beides nötig</small>
+              </button>
+              <button type="button" class="qp-logic-btn" id="qp-logic-oder" onclick="qpSetLogic('oder')">
+                ODER<small>eines reicht</small>
+              </button>
+            </div>
+          </div>
+
+          <div class="qp-cond-hint" id="qp-cond-hint">Aktive Bedingungen erscheinen als gelber Hinweis auf der Kachel.</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="qp-foot">
+      <button class="qp-btn-cancel" onclick="qpClose()">Abbrechen</button>
+      <button class="qp-btn-save" id="qp-save-btn" onclick="qpSave()">✅ Speichern</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== QUICK PRICE EDIT v1 — nur Preise, Admin-only ===== */
+(function(){
+  let qpId = null;
+  let qpLogic = 'und';   // Verknuepfung der Bedingungen: 'und' | 'oder'
+  const $ = id => document.getElementById(id);
+
+  /* --- Admin-Status auf <body> spiegeln (steuert Sichtbarkeit Stift/Long-Press) --- */
+  function qpSyncAdminClass(){
+    const t = $('view-toggle');
+    document.body.classList.toggle('qp-admin', !!(t && t.checked));
+  }
+  window.qpSyncAdminClass = qpSyncAdminClass;
+
+  // switchView umschließen, ohne Original zu verlieren
+  const __origSwitchView = window.switchView;
+  window.switchView = function(){
+    if(typeof __origSwitchView === 'function') __origSwitchView.apply(this, arguments);
+    qpSyncAdminClass();
+    // Kacheln neu zeichnen, damit Stift-Button erscheint/verschwindet
+    try{ if(typeof applyFilterAndSort === 'function') applyFilterAndSort(); }catch(e){}
+  };
+
+  /* --- Währungs-Helfer --- */
+  // "79 €" / "79€" / "1,50 €"  ->  "79" / "1,50"   (fuer die Eingabe)
+  const qpStripCur = v => String(v ?? '').replace(/€/g,'').replace(/\s+/g,' ').trim();
+  // "79" -> "79 €" ; leer bleibt leer ; ohne Ziffer bleibt unveraendert (z.B. "n.v.")
+  const qpAddCur = v => {
+    const s = qpStripCur(v);
+    if(!s) return '';
+    if(!/\d/.test(s)) return s;
+    return s + ' €';
+  };
+  const EZ_IDS = ['qp-ez-xl','qp-ez-l','qp-ez-m','qp-ez-s','qp-hz-xl','qp-hz-l','qp-hz-m','qp-hz-s'];
+
+  // Leer-Zustand fuer das ausgegraute €-Zeichen
+  function qpMarkEmpty(el){
+    const w = el.closest('.qp-input-wrap');
+    if(w) w.classList.toggle('qp-empty', el.value.trim()==='');
+  }
+  function qpMarkAllEmpty(){
+    ['qp-vk','qp-ek'].concat(EZ_IDS).forEach(id => { const el=$(id); if(el) qpMarkEmpty(el); });
+  }
+
+  /* --- Modal öffnen --- */
+  window.qpOpen = function(id){
+    if(!document.body.classList.contains('qp-admin')) return;
+    const p = promotions.find(x => String(x.id) === String(id));
+    if(!p){ showMessage('Aktion nicht gefunden.', true); return; }
+    qpId = p.id;
+
+    $('qp-title').textContent = (p.geraetebezeichnung || 'Gerät') + ' · ' + (p.anbieter || '');
+
+    $('qp-vk').value   = (p.verkaufspreis  ?? '') === '' ? '' : p.verkaufspreis;
+    $('qp-ek').value   = (p.einkaufspreis  ?? '') === '' ? '' : p.einkaufspreis;
+    $('qp-novk').checked = !!p.noVerkaufspreis;
+    $('qp-noek').checked = !!p.noEinkaufspreis;
+
+    // € beim Laden entfernen -> im Feld steht nur die Zahl
+    $('qp-ez-xl').value = qpStripCur(p.einmalzahlungXL);
+    $('qp-ez-l').value  = qpStripCur(p.einmalzahlungL);
+    $('qp-ez-m').value  = qpStripCur(p.einmalzahlungM);
+    $('qp-ez-s').value  = qpStripCur(p.einmalzahlungS);
+
+    $('qp-hz-xl').value = qpStripCur(p.einmalzahlungHomeXL);
+    $('qp-hz-l').value  = qpStripCur(p.einmalzahlungHomeL);
+    $('qp-hz-m').value  = qpStripCur(p.einmalzahlungHomeM);
+    $('qp-hz-s').value  = qpStripCur(p.einmalzahlungHomeS);
+
+    // Bedingungen
+    $('qp-only-tv').checked = !!p.nurMitTV;
+    $('qp-only-os').checked = !!p.nurMitOnlineSchutz;
+    qpLogic = (p.nurMitLogik === 'oder') ? 'oder' : 'und';   // Default: UND
+    qpSyncCondRows();
+
+    qpToggleDisabled();
+    qpUpdateMarge();
+    qpMarkAllEmpty();
+    $('qp-overlay').classList.add('open');
+    setTimeout(()=>{ const v=$('qp-vk'); if(v && !v.disabled){ v.focus(); v.select&&v.select(); } }, 80);
+  };
+
+  /* --- Bedingungs-Logik (UND / ODER) --- */
+  window.qpSetLogic = function(mode){
+    qpLogic = (mode === 'oder') ? 'oder' : 'und';
+    qpSyncCondRows();
+  };
+
+  window.qpSyncCondRows = function(){
+    const tv = $('qp-only-tv').checked;
+    const os = $('qp-only-os').checked;
+
+    $('qp-row-tv').classList.toggle('checked', tv);
+    $('qp-row-os').classList.toggle('checked', os);
+
+    // UND/ODER nur relevant, wenn BEIDE Haken gesetzt sind
+    const both = tv && os;
+    $('qp-logic').classList.toggle('qp-logic-off', !both);
+    $('qp-logic-und').classList.toggle('active',  both && qpLogic === 'und');
+    $('qp-logic-oder').classList.toggle('active', both && qpLogic === 'oder');
+
+    // Live-Vorschau des Satzes
+    const hint = $('qp-cond-hint');
+    if(!tv && !os){
+      hint.textContent = 'Keine Bedingung – die Kachel zeigt keinen Hinweis.';
+    } else if(both){
+      hint.textContent = qpLogic === 'oder'
+        ? '➜ Kachel zeigt: „Verkauf nur mit o2 TV ODER Online Schutz Plus“'
+        : '➜ Kachel zeigt: „Verkauf nur mit o2 TV UND Online Schutz Plus“';
+    } else {
+      hint.textContent = tv
+        ? '➜ Kachel zeigt: „Verkauf nur mit o2 TV“'
+        : '➜ Kachel zeigt: „Verkauf nur mit Online Schutz Plus“';
+    }
+  };
+
+  window.qpClose = function(){
+    $('qp-overlay').classList.remove('open');
+    qpId = null;
+  };
+
+  window.qpToggleDisabled = function(){
+    $('qp-vk').disabled = $('qp-novk').checked;
+    $('qp-ek').disabled = $('qp-noek').checked;
+    qpMarkEmpty($('qp-vk'));
+    qpMarkEmpty($('qp-ek'));
+    qpUpdateMarge();
+  };
+
+  window.qpUpdateMarge = function(){
+    const box  = $('qp-marge');
+    const noEk = $('qp-noek').checked;
+    const noVk = $('qp-novk').checked;
+    box.classList.remove('neg','na');
+    if(noEk || noVk){ box.textContent = 'Marge: n.v.'; box.classList.add('na'); return; }
+    const m = calculateMargin($('qp-ek').value, $('qp-vk').value, false, false);
+    if(m === 'N/A' || m === null){ box.textContent = 'Marge: –'; box.classList.add('na'); return; }
+    box.textContent = 'Marge (Netto): ' + m + ' €';
+    if(parseFloat(m) < 0) box.classList.add('neg');
+  };
+
+  /* --- Speichern --- */
+  window.qpSave = async function(){
+    if(qpId === null) return;
+    const idx = promotions.findIndex(x => String(x.id) === String(qpId));
+    if(idx === -1){ showMessage('Aktion nicht gefunden.', true); qpClose(); return; }
+
+    const p = promotions[idx];
+    const noVk = $('qp-novk').checked;
+    const noEk = $('qp-noek').checked;
+
+    const oldVk    = p.noVerkaufspreis ? 'n.v.' : (parseFloat(p.verkaufspreis || 0).toFixed(2) + ' €');
+    const oldTV    = !!p.nurMitTV;
+    const oldOS    = !!p.nurMitOnlineSchutz;
+    const oldLogik = (p.nurMitLogik === 'oder') ? 'oder' : 'und';
+
+    p.noVerkaufspreis = noVk;
+    p.noEinkaufspreis = noEk;
+    p.verkaufspreis   = noVk ? '' : ($('qp-vk').value.trim() === '' ? '' : parseFloat($('qp-vk').value));
+    p.einkaufspreis   = noEk ? '' : ($('qp-ek').value.trim() === '' ? '' : parseFloat($('qp-ek').value));
+
+    // EZ-Werte: € wird automatisch angehaengt
+    p.einmalzahlungXL = qpAddCur($('qp-ez-xl').value);
+    p.einmalzahlungL  = qpAddCur($('qp-ez-l').value);
+    p.einmalzahlungM  = qpAddCur($('qp-ez-m').value);
+    p.einmalzahlungS  = qpAddCur($('qp-ez-s').value);
+
+    p.einmalzahlungHomeXL = qpAddCur($('qp-hz-xl').value);
+    p.einmalzahlungHomeL  = qpAddCur($('qp-hz-l').value);
+    p.einmalzahlungHomeM  = qpAddCur($('qp-hz-m').value);
+    p.einmalzahlungHomeS  = qpAddCur($('qp-hz-s').value);
+
+    // Bedingungen
+    p.nurMitTV           = $('qp-only-tv').checked;
+    p.nurMitOnlineSchutz = $('qp-only-os').checked;
+    p.nurMitLogik        = qpLogic;   // 'und' | 'oder' (nur relevant wenn beide aktiv)
+
+    const newVk = noVk ? 'n.v.' : (parseFloat(p.verkaufspreis || 0).toFixed(2) + ' €');
+    const geraet = `${p.geraetebezeichnung || 'Gerät'} (${p.anbieter || ''})`;
+
+    const btn = $('qp-save-btn');
+    btn.disabled = true; btn.textContent = '⏳ Speichere…';
+
+    try{
+      await saveData();
+
+      const logs = [];
+      if(oldVk !== newVk) logs.push(`Preis-Update: ${geraet} → VK ${newVk}`);
+      if(oldTV !== p.nurMitTV)
+        logs.push(`${geraet}: Verkauf nur mit o2 TV ${p.nurMitTV ? 'aktiviert' : 'entfernt'}`);
+      if(oldOS !== p.nurMitOnlineSchutz)
+        logs.push(`${geraet}: Verkauf nur mit Online Schutz Plus ${p.nurMitOnlineSchutz ? 'aktiviert' : 'entfernt'}`);
+      // Logik-Wechsel nur melden, wenn beide Bedingungen aktiv sind
+      if(p.nurMitTV && p.nurMitOnlineSchutz && oldLogik !== p.nurMitLogik)
+        logs.push(`${geraet}: Bedingung jetzt „o2 TV ${p.nurMitLogik === 'oder' ? 'ODER' : 'UND'} Online Schutz Plus“`);
+
+      if(logs.length) logs.forEach(t => addRecentChange(t));
+      else refreshUI();
+    }catch(e){ console.warn(e); }
+
+    btn.disabled = false; btn.textContent = '✅ Speichern';
+    qpClose();
+  };
+
+  /* --- Long-Press auf Preis-Zone (Touch + Maus), delegiert --- */
+  const LP_MS = 550;
+  let lpTimer = null, lpZone = null, lpStart = null, lpFired = false;
+
+  function lpCancel(){
+    if(lpTimer){ clearTimeout(lpTimer); lpTimer = null; }
+    if(lpZone){ lpZone.classList.remove('qp-pressing'); lpZone = null; }
+    lpStart = null;
+  }
+
+  function lpBegin(e, zone){
+    if(!document.body.classList.contains('qp-admin')) return;
+    lpFired = false;
+    lpZone  = zone;
+    zone.classList.add('qp-pressing');
+    const t = e.touches ? e.touches[0] : e;
+    lpStart = { x: t.clientX, y: t.clientY };
+    const id = zone.getAttribute('data-qp-id');
+    lpTimer = setTimeout(()=>{
+      lpFired = true;
+      try{ navigator.vibrate && navigator.vibrate(35); }catch(_){}
+      lpCancel();
+      qpOpen(id);
+    }, LP_MS);
+  }
+
+  function lpMove(e){
+    if(!lpStart || !lpTimer) return;
+    const t = e.touches ? e.touches[0] : e;
+    const dx = Math.abs(t.clientX - lpStart.x), dy = Math.abs(t.clientY - lpStart.y);
+    if(dx > 12 || dy > 12) lpCancel(); // Scrollen bricht Long-Press ab
+  }
+
+  const zoneOf = t => t && t.closest ? t.closest('.qp-price-zone') : null;
+
+  document.addEventListener('touchstart', e => { const z = zoneOf(e.target); if(z) lpBegin(e, z); }, { passive:true });
+  document.addEventListener('touchmove',  lpMove, { passive:true });
+  document.addEventListener('touchend',   lpCancel, { passive:true });
+  document.addEventListener('touchcancel',lpCancel, { passive:true });
+
+  document.addEventListener('mousedown', e => { if(e.button!==0) return; const z = zoneOf(e.target); if(z) lpBegin(e, z); });
+  document.addEventListener('mousemove', lpMove);
+  document.addEventListener('mouseup',   lpCancel);
+  document.addEventListener('mouseleave',lpCancel);
+
+  // Kontextmenü auf Preis-Zone im Admin unterdrücken (verhindert iOS/Android Copy-Popup)
+  document.addEventListener('contextmenu', e => {
+    if(document.body.classList.contains('qp-admin') && zoneOf(e.target)) e.preventDefault();
+  });
+
+  // Klick nach Long-Press schlucken
+  document.addEventListener('click', e => {
+    if(lpFired && zoneOf(e.target)){ e.preventDefault(); e.stopPropagation(); lpFired = false; }
+  }, true);
+
+  // Overlay: Klick auf Hintergrund + ESC schließt
+  document.addEventListener('DOMContentLoaded', ()=>{
+    // Kundenansicht immer sichtbar (ausser Single-Bundle-Ansicht regelt es selbst)
+    const uv = $('user-view');
+    if(uv && !new URLSearchParams(location.search).get('bundleId')) uv.classList.remove('hidden');
+
+    // Admin-Panel-Status wiederherstellen
+    if(typeof updateAdminPanelBtn === 'function') updateAdminPanelBtn();
+    qpSyncAdminClass();
+
+    // Waehrungs-Verhalten: € nie doppelt, Komma erlaubt, €-Zeichen ausgrauen wenn leer
+    ['qp-vk','qp-ek'].concat(EZ_IDS).forEach(id=>{
+      const el = $(id);
+      if(!el) return;
+      el.addEventListener('input', ()=>{
+        // Falls jemand doch ein € tippt: sofort entfernen (nur bei Textfeldern moeglich)
+        if(el.type === 'text' && el.value.includes('€')){
+          const pos = el.selectionStart;
+          el.value = el.value.replace(/€/g,'');
+          try{ el.setSelectionRange(pos-1, pos-1); }catch(_){}
+        }
+        qpMarkEmpty(el);
+      });
+      // Beim Verlassen: Komma zu Punkt vereinheitlichen fuer die EZ-Textfelder
+      el.addEventListener('blur', ()=>{
+        if(el.type === 'text'){
+          el.value = qpStripCur(el.value);
+        }
+        qpMarkEmpty(el);
+      });
+    });
+
+    const ov = $('qp-overlay');
+    if(ov) ov.addEventListener('click', e => { if(e.target === ov) qpClose(); });
+  });
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && $('qp-overlay').classList.contains('open')) qpClose();
+  });
+})();
+</script>
+
+<!-- ================= PDF EXPORT MIT KLICKBAREM INHALTSVERZEICHNIS ================= -->
+<div class="pdfx-overlay" id="pdfx-overlay">
+  <div class="pdfx-box">
+    <div class="pdfx-spinner"></div>
+    <div class="pdfx-title">PDF wird erstellt…</div>
+    <div class="pdfx-status" id="pdfx-status">Vorbereiten…</div>
+    <div class="pdfx-bar"><div class="pdfx-bar-fill" id="pdfx-bar-fill"></div></div>
+    <div class="pdfx-hint">Bitte das Tablet nicht sperren.</div>
+  </div>
+</div>
+
+<!-- Unsichtbare Render-Buehne: liegt hinter dem Overlay, damit html2canvas sauber misst -->
+<div id="pdfx-stage" aria-hidden="true"></div>
+
+<style>
+.pdfx-overlay {
+  position:fixed; inset:0; background:rgba(15,23,42,.75); backdrop-filter:blur(4px);
+  display:none; align-items:center; justify-content:center; z-index:10000; padding:20px;
+}
+.pdfx-overlay.open { display:flex; }
+.pdfx-box {
+  background:#fff; border-radius:18px; padding:30px 34px; text-align:center;
+  max-width:340px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.4);
+}
+.pdfx-spinner {
+  width:44px; height:44px; margin:0 auto 16px; border-radius:50%;
+  border:4px solid #e2e8f0; border-top-color:#1d4ed8; animation:pdfx-spin .8s linear infinite;
+}
+@keyframes pdfx-spin { to { transform:rotate(360deg); } }
+.pdfx-title { font-size:16px; font-weight:800; color:#0f172a; margin-bottom:5px; }
+.pdfx-status { font-size:13px; color:#64748b; font-weight:600; min-height:19px; margin-bottom:14px; }
+.pdfx-bar { height:7px; background:#e2e8f0; border-radius:100px; overflow:hidden; }
+.pdfx-bar-fill { height:100%; width:0%; background:linear-gradient(90deg,#1d4ed8,#3b82f6); border-radius:100px; transition:width .3s; }
+.pdfx-hint { font-size:11px; color:#94a3b8; margin-top:12px; font-weight:600; }
+
+/* Render-Buehne: sichtbar fuer html2canvas, aber ausserhalb des Blickfelds */
+#pdfx-stage {
+  position:fixed; top:0; left:-99999px; width:1100px;
+  background:#fff; padding:20px; z-index:-1; pointer-events:none;
+}
+
+@media print { .pdfx-overlay, #pdfx-stage { display:none !important; } }
+</style>
+
+<script>
+/* ===== PDF-EXPORT v1 — echte, klickbare Sprungmarken im Inhaltsverzeichnis ===== */
+(function(){
+  const $ = id => document.getElementById(id);
+
+  const A4_W = 210, A4_H = 297;   // mm
+  const MARGIN = 10;              // mm
+  const CONTENT_W = A4_W - MARGIN*2;
+
+  function setStatus(txt, pct){
+    const s = $('pdfx-status'), b = $('pdfx-bar-fill');
+    if(s) s.textContent = txt;
+    if(b && pct != null) b.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  }
+
+  // Wartet, bis alle Bilder in einem Element geladen sind (sonst leere Kacheln im PDF)
+  function waitForImages(el){
+    const imgs = Array.from(el.querySelectorAll('img'));
+    return Promise.all(imgs.map(img => {
+      if(img.complete && img.naturalHeight !== 0) return Promise.resolve();
+      return new Promise(res => {
+        img.addEventListener('load', res, { once:true });
+        img.addEventListener('error', res, { once:true });
+        setTimeout(res, 3000); // Notbremse
+      });
+    }));
+  }
+
+  /* ===== CORS-FIX: Bilder in Data-URIs umwandeln =====
+     html2canvas laesst Bilder von fremden Domains ohne CORS-Header still weg.
+     Genau das ist der Grund, warum einzelne Geraetebilder im PDF fehlten.
+     Loesung: Bild vorher selbst holen und als Data-URI einbetten -> kein CORS mehr.
+
+     Strategie (in dieser Reihenfolge, bis eine greift):
+       1. fetch() direkt          -> kein Canvas noetig, kein Tainting
+       2. <img crossOrigin> direkt-> falls fetch am Preflight scheitert
+       3./4./5. dieselben Wege ueber mehrere Proxies                             */
+  const imgCache = new Map();   // url -> dataURI | null
+
+  const stripProto = u => u.replace(/^https?:\/\//, '');
+
+  // Proxy-Kandidaten. Reihenfolge = Reihenfolge der Versuche.
+  const proxify = url => ([
+    url,
+    'https://images.weserv.nl/?url=' + encodeURIComponent(stripProto(url)) + '&output=png',
+    'https://wsrv.nl/?url=' + encodeURIComponent(stripProto(url)) + '&output=png',
+    'https://corsproxy.io/?url=' + encodeURIComponent(url),
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)
+  ]);
+
+  const blobToDataURI = blob => new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onloadend = () => resolve(fr.result);
+    fr.onerror   = () => reject(new Error('FileReader'));
+    fr.readAsDataURL(blob);
+  });
+
+  // Weg 1: per fetch holen (umgeht Canvas-Tainting komplett)
+  async function viaFetch(candidate){
+    const ctrl  = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    try{
+      const res = await fetch(candidate, { mode:'cors', signal: ctrl.signal });
+      if(!res.ok) return null;
+      const blob = await res.blob();
+      if(!blob.size || !/^image\//.test(blob.type)) return null;
+      return await blobToDataURI(blob);
+    }catch(e){
+      return null;
+    }finally{
+      clearTimeout(timer);
+    }
+  }
+
+  // Weg 2: per <img> laden und aufs Canvas zeichnen
+  function viaImage(candidate){
+    return new Promise(resolve => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const timer = setTimeout(() => { img.src = ''; resolve(null); }, 8000);
+
+      img.onload = () => {
+        clearTimeout(timer);
+        try{
+          if(!img.naturalWidth) return resolve(null);
+          const c = document.createElement('canvas');
+          c.width  = img.naturalWidth;
+          c.height = img.naturalHeight;
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0);
+          resolve(c.toDataURL('image/png'));   // wirft, wenn Canvas "tainted" ist
+        }catch(e){
+          resolve(null);                        // getaintet
+        }
+      };
+      img.onerror = () => { clearTimeout(timer); resolve(null); };
+      img.src = candidate;
+    });
+  }
+
+  async function fetchAsDataURI(url){
+    for(const candidate of proxify(url)){
+      // Erst fetch (robuster), dann Image als Rueckfallebene
+      let data = await viaFetch(candidate);
+      if(data) return data;
+
+      data = await viaImage(candidate);
+      if(data) return data;
+    }
+    console.warn('[PDF] Bild nicht ladbar:', url);
+    return null;
+  }
+
+  // Alle Bilder der Seite einmalig vorladen und cachen
+  async function preloadImages(onProgress){
+    const urls = new Set();
+    document.querySelectorAll('#user-view img').forEach(img => {
+      const src = img.getAttribute('src') || '';
+      if(src && !src.startsWith('data:')) urls.add(src);
+    });
+
+    const list = Array.from(urls).filter(u => !imgCache.has(u));
+    let done = 0;
+
+    // In kleinen Gruppen laden, damit das Tablet nicht einbricht
+    const BATCH = 6;
+    for(let i = 0; i < list.length; i += BATCH){
+      const chunk = list.slice(i, i + BATCH);
+      await Promise.all(chunk.map(async u => {
+        imgCache.set(u, await fetchAsDataURI(u));
+        done++;
+        if(onProgress) onProgress(done, list.length);
+      }));
+    }
+  }
+
+  // Ersetzt im Klon alle Bild-Quellen durch die gecachten Data-URIs
+  function inlineImages(clone){
+    clone.querySelectorAll('img').forEach(img => {
+      const src = img.getAttribute('src') || '';
+      if(!src || src.startsWith('data:')) return;
+      const data = imgCache.get(src);
+      if(data){
+        img.setAttribute('src', data);
+        img.removeAttribute('crossorigin');
+      }else{
+        // Nicht ladbar: Original stehen lassen (html2canvas kann es evtl. doch zeichnen)
+        // und einen dezenten Rahmen dahinterlegen, falls es leer bleibt.
+        img.removeAttribute('crossorigin');
+        const wrap = img.parentNode;
+        if(wrap && !wrap.dataset.pdfxFallback){
+          wrap.dataset.pdfxFallback = '1';
+          wrap.style.background = '#f8fafc';
+        }
+      }
+    });
+  }
+
+  // Rendert bei fester Breite, damit das PDF auf iPad/Tablet/Desktop identisch aussieht
+  const RENDER_W = 1100; // px
+  async function snapFixed(el){
+    const host = document.getElementById('pdfx-stage');
+    const clone = el.cloneNode(true);
+
+    // Admin-Elemente aus dem Klon entfernen
+    clone.querySelectorAll('.qp-edit-btn, .no-print').forEach(n => n.remove());
+    clone.classList.remove('hidden');
+    clone.style.margin = '0';
+    clone.style.width  = RENDER_W + 'px';
+
+    // CORS-Fix: Bildquellen durch eingebettete Data-URIs ersetzen
+    inlineImages(clone);
+
+    host.innerHTML = '';
+    host.appendChild(clone);
+
+    await waitForImages(clone);
+    await new Promise(r => setTimeout(r, 120)); // Layout/Fonts settlen lassen
+
+    // --- Sichere Schnittkanten ermitteln (Unterkante jeder Kachel-Zeile) ---
+    // So wird NIE mitten durch eine Kachel geschnitten.
+    const cloneRect = clone.getBoundingClientRect();
+    const cards = clone.querySelectorAll('.promo-card, .bundle-card');
+    const bottomsSet = new Set();
+    cards.forEach(c => {
+      const r = c.getBoundingClientRect();
+      // +14px Puffer, damit Schatten/Rand der Kachel nicht angeschnitten werden
+      const bottom = Math.round(r.bottom - cloneRect.top + 14);
+      if(bottom > 0) bottomsSet.add(bottom);
+    });
+    const cutPoints = Array.from(bottomsSet).sort((a,b) => a - b);   // CSS-Pixel
+
+    const canvas = await html2canvas(clone, {
+      scale: 2,
+      useCORS: true,
+      // allowTaint bewusst NICHT aktiviert: ein getaintetes Canvas laesst sich
+      // nicht mehr per toDataURL() auslesen -> das wuerde den ganzen Export brechen.
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      logging: false,
+      width: RENDER_W,
+      windowWidth: RENDER_W
+    });
+
+    host.innerHTML = '';
+
+    // Schnittpunkte auf die Canvas-Aufloesung umrechnen.
+    // Ratio ueber die BREITE, weil html2canvas die Hoehe runden kann.
+    const ratio = canvas.width / RENDER_W;
+    canvas.__cuts = cutPoints
+      .map(p => Math.round(p * ratio))
+      .filter(p => p > 0 && p < canvas.height)   // Randwerte verwerfen
+      .sort((a,b) => a - b);
+    return canvas;
+  }
+
+  // Setzt ein Canvas auf eine oder mehrere A4-Seiten und liefert die Startseite zurueck.
+  // Schneidet dabei ausschliesslich an Kachel-Grenzen, nie mitten durch eine Kachel.
+  function placeCanvas(doc, canvas, isFirst){
+    const imgW    = CONTENT_W;
+    const imgH    = (canvas.height * imgW) / canvas.width;
+    const usableH = A4_H - MARGIN*2;
+
+    if(!isFirst) doc.addPage();
+    const startPage = doc.getNumberOfPages();
+
+    // Passt komplett auf eine Seite
+    if(imgH <= usableH){
+      doc.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', MARGIN, MARGIN, imgW, imgH);
+      return startPage;
+    }
+
+    const pxPerMm  = canvas.width / imgW;         // Canvas-Pixel pro mm
+    const maxSlice = Math.floor(usableH * pxPerMm); // maximale Streifenhoehe in px
+    const cuts     = canvas.__cuts || [];
+
+    let offset = 0, first = true;
+
+    while(offset < canvas.height){
+      const remaining = canvas.height - offset;
+      let h;
+
+      if(remaining <= maxSlice){
+        h = remaining;                              // Rest passt -> fertig
+      }else{
+        // Letzte Kachel-Unterkante suchen, die noch auf die Seite passt
+        const limit = offset + maxSlice;
+        let cut = 0;
+        for(const c of cuts){
+          if(c > offset && c <= limit) cut = c;     // hoechster gueltiger Schnittpunkt
+          else if(c > limit) break;
+        }
+        // Fallback: kein Schnittpunkt gefunden (z.B. eine einzelne Kachel ist
+        // hoeher als eine ganze Seite) -> hart schneiden, sonst Endlosschleife
+        h = (cut > offset) ? (cut - offset) : maxSlice;
+      }
+
+      const part = document.createElement('canvas');
+      part.width  = canvas.width;
+      part.height = h;
+      const ctx = part.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, part.width, part.height);
+      ctx.drawImage(canvas, 0, offset, canvas.width, h, 0, 0, canvas.width, h);
+
+      if(!first) doc.addPage();
+      doc.addImage(part.toDataURL('image/jpeg', 0.92), 'JPEG', MARGIN, MARGIN, imgW, h / pxPerMm);
+
+      offset += h;
+      first = false;
+    }
+    return startPage;
+  }
+
+  window.exportToPdfLinked = async function(){
+    if(!window.jspdf || !window.html2canvas){
+      showMessage('PDF-Bibliothek nicht geladen. Bitte Seite neu laden.', true);
+      return;
+    }
+
+    // Admin-Elemente ausblenden, damit sie nicht im PDF landen
+    const wasAdmin = document.body.classList.contains('qp-admin');
+    document.body.classList.remove('qp-admin');
+
+    $('pdfx-overlay').classList.add('open');
+    setStatus('Vorbereiten…', 3);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait', compress:true });
+
+    try{
+      // --- Zu erfassende Sektionen einsammeln ---
+      const sections = [];
+      const bundleSec = $('bundle-section-header');
+      if(bundleSec && !bundleSec.classList.contains('hidden')){
+        sections.push({ el: bundleSec, label: '📦 Bundle Angebote' });
+      }
+      document.querySelectorAll('#user-view-content .anbieter-section').forEach(sec => {
+        const hdr = sec.querySelector('.anbieter-header');
+        const label = hdr ? hdr.textContent.trim().replace(/\s+/g,' ') : sec.id;
+        sections.push({ el: sec, label });
+      });
+
+      if(!sections.length){
+        showMessage('Keine Inhalte zum Exportieren.', true);
+        $('pdfx-overlay').classList.remove('open');
+        if(wasAdmin) document.body.classList.add('qp-admin');
+        return;
+      }
+
+      // --- Seite 1: Deckblatt + Inhaltsverzeichnis (Platzhalter, Links kommen spaeter) ---
+      const heute = new Date().toLocaleDateString('de-DE', { day:'2-digit', month:'long', year:'numeric' });
+
+      // Farbverlauf im Kopf (in feinen Streifen: tiefes Navy -> kraeftiges o2-Blau)
+      const HDR_H = 86;
+      for(let i = 0; i < HDR_H * 2; i++){
+        const t = i / (HDR_H * 2);
+        const r = Math.round(12  + (29  - 12)  * t);
+        const g = Math.round(20  + (78  - 20)  * t);
+        const b = Math.round(58  + (216 - 58)  * t);
+        doc.setFillColor(r, g, b);
+        doc.rect(0, i * 0.5, A4_W, 0.55, 'F');
+      }
+
+      // Dekorative Kreise im Header (Opacity nur wenn GState verfuegbar)
+      const setOpacity = (v) => {
+        try{ if(doc.GState) doc.setGState(new doc.GState({ opacity: v })); }catch(e){}
+      };
+
+      doc.setFillColor(255, 255, 255);
+      setOpacity(0.08);
+      doc.circle(A4_W - 20, 16, 30, 'F');
+      doc.circle(A4_W - 48, 62, 18, 'F');
+      doc.circle(A4_W - 6,  52, 12, 'F');
+      setOpacity(0.05);
+      doc.circle(A4_W - 70, 20, 22, 'F');
+      setOpacity(1);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(32);
+      doc.text('Aktionsmappe', MARGIN, 38);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(11);
+      setOpacity(0.85);
+      doc.text('HeTec GmbH  ·  Stand: ' + heute, MARGIN, 50);
+      setOpacity(1);
+
+      // Badge mit Kategorienzahl
+      doc.setFillColor(245, 158, 11);
+      doc.roundedRect(MARGIN, 58, 46, 9, 2.5, 2.5, 'F');
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(69, 26, 3);
+      doc.text(sections.length + ' KATEGORIEN', MARGIN + 5, 64.2);
+
+      // Akzentlinie unter dem Header
+      doc.setFillColor(245, 158, 11);
+      doc.rect(0, HDR_H, A4_W, 2.4, 'F');
+
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(15);
+      doc.text('Inhaltsverzeichnis', MARGIN, 103);
+
+      doc.setFillColor(37, 99, 235);
+      doc.rect(MARGIN, 106, 26, 0.9, 'F');
+
+      doc.setFontSize(8);
+      doc.setTextColor(120, 130, 145);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Auf einen Eintrag tippen, um direkt zur Kategorie zu springen.', MARGIN, 112);
+
+      // Positionen der TOC-Zeilen merken -> Links werden nach dem Rendern gesetzt
+      const tocRows = [];
+      let y = 123;
+      sections.forEach((s, i) => {
+        tocRows.push({ y, label: s.label, idx: i });
+        y += 12;
+      });
+
+      // --- Statistik-Leiste (fuellt die Flaeche unter dem Verzeichnis) ---
+      const totalAktionen = (typeof promotions !== 'undefined')
+        ? promotions.filter(p => !isExpired(p.aktionsende, p.dauerhaftAktiv)).length : 0;
+      const statY = Math.max(y + 12, 200);
+
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(MARGIN, statY, CONTENT_W, 34, 3, 3, 'FD');
+
+      const stats = [
+        { num: String(sections.length), lbl: 'KATEGORIEN',  col: [37, 99, 235] },
+        { num: String(totalAktionen),   lbl: 'AKTIONEN',    col: [22, 163, 74] },
+        { num: String(sections.length ? '' : ''), lbl: '', col: [0,0,0] }
+      ].filter(s => s.lbl);
+
+      const colW = CONTENT_W / stats.length;
+      stats.forEach((s, i) => {
+        const cx = MARGIN + colW * i + colW / 2;
+        doc.setTextColor(s.col[0], s.col[1], s.col[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.text(s.num, cx, statY + 16, { align:'center' });
+
+        doc.setTextColor(120, 130, 145);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.text(s.lbl, cx, statY + 25, { align:'center' });
+
+        // Trennlinie zwischen den Spalten
+        if(i > 0){
+          doc.setDrawColor(226, 232, 240);
+          doc.line(MARGIN + colW * i, statY + 6, MARGIN + colW * i, statY + 28);
+        }
+      });
+
+      // Fusszeile Deckblatt (farbig)
+      const FOOT_H = 20;
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, A4_H - FOOT_H, A4_W, FOOT_H, 'F');
+      doc.setFillColor(245, 158, 11);
+      doc.rect(0, A4_H - FOOT_H, A4_W, 1.4, 'F');
+
+      doc.setFontSize(8);
+      doc.setTextColor(203, 213, 225);
+      doc.setFont('helvetica', 'bold');
+      doc.text('HeTec GmbH', MARGIN, A4_H - 11.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Interne Verkaufsunterlage  ·  Nicht zur Weitergabe an Kunden', MARGIN, A4_H - 6.5);
+
+      // --- Bilder vorladen (CORS-Fix) ---
+      setStatus('Lade Bilder…', 5);
+      await preloadImages((done, total) => {
+        setStatus(`Lade Bilder… ${done}/${total}`, 5 + Math.round((done / Math.max(1,total)) * 20));
+      });
+
+      const failedUrls = Array.from(imgCache.entries())
+        .filter(([, v]) => v === null)
+        .map(([u]) => u);
+      const failed = failedUrls.length;
+
+      if(failed){
+        console.warn('[PDF] Diese Bilder konnten nicht geladen werden:');
+        failedUrls.forEach(u => console.warn('   ' + u));
+      }
+
+      // --- Sektionen rendern ---
+      const startPages = [];
+      for(let i = 0; i < sections.length; i++){
+        const s = sections[i];
+        setStatus(`Rendere: ${s.label}`, 27 + Math.round((i / sections.length) * 63));
+        const canvas = await snapFixed(s.el);
+        const startPage = placeCanvas(doc, canvas, false);   // nie "first": Seite 1 ist das Deckblatt
+        startPages.push(startPage);
+      }
+
+      // --- Zurueck auf Seite 1: TOC-Zeilen zeichnen + echte Links setzen ---
+      setStatus('Verlinke Inhaltsverzeichnis…', 94);
+      const totalPages = doc.getNumberOfPages();
+      doc.setPage(1);
+
+      // Sicherheitsnetz: ein Link auf eine nicht existierende Seite zerstoert das
+      // gesamte PDF (jsPDF kann das Ziel nicht aufloesen). Daher hart validieren.
+      const safePage = (p) => (Number.isInteger(p) && p >= 1 && p <= totalPages) ? p : null;
+
+      tocRows.forEach((row, i) => {
+        const page = safePage(startPages[i]);
+
+        // Zeilen-Hintergrund
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(MARGIN, row.y - 6, CONTENT_W, 10, 2, 2, 'FD');
+
+        // Blauer Akzentbalken links
+        doc.setFillColor(37, 99, 235);
+        doc.roundedRect(MARGIN, row.y - 6, 2.2, 10, 1, 1, 'F');
+
+        // Nummern-Badge
+        doc.setFillColor(37, 99, 235);
+        doc.circle(MARGIN + 8.5, row.y - 1, 3, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.text(String(i + 1), MARGIN + 8.5, row.y + 0.6, { align:'center' });
+
+        // Beschriftung (Emojis entfernen – Helvetica kann sie nicht darstellen)
+        const clean = row.label.replace(/[^\x20-\xFF]/g, '').trim();
+        doc.setTextColor(15, 23, 42);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text(clean, MARGIN + 14, row.y + 0.6);
+
+        // Seitenzahl rechts (als Pille)
+        doc.setFillColor(226, 232, 240);
+        doc.roundedRect(A4_W - MARGIN - 22, row.y - 3.6, 18, 5.2, 2.6, 2.6, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(51, 65, 85);
+        doc.text(page ? ('Seite ' + page) : '–', A4_W - MARGIN - 13, row.y + 0.2, { align:'center' });
+
+        // >>> Der eigentliche Punkt: echte, klickbare PDF-Link-Annotation <<<
+        // Nur setzen, wenn das Ziel existiert – sonst waere das PDF unlesbar.
+        if(page) doc.link(MARGIN, row.y - 6, CONTENT_W, 10, { pageNumber: page });
+      });
+
+      // --- Seitenzahlen in die Fusszeile ---
+      const total = totalPages;
+      for(let p = 1; p <= total; p++){
+        doc.setPage(p);
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${p} / ${total}`, A4_W / 2, A4_H - 5, { align:'center' });
+
+        // Ab Seite 2: kleiner Ruecksprung-Link zum Inhaltsverzeichnis
+        if(p > 1){
+          doc.setTextColor(37, 99, 235);
+          doc.text('Inhaltsverzeichnis', A4_W - MARGIN, A4_H - 5, { align:'right' });
+          doc.link(A4_W - MARGIN - 26, A4_H - 9, 26, 5, { pageNumber: 1 });
+        }
+      }
+
+      setStatus('Speichern…', 99);
+      const stamp = new Date().toISOString().slice(0,10);
+      doc.save(`Aktionsmappe_${stamp}.pdf`);
+
+      setStatus('Fertig!', 100);
+      setTimeout(()=>{
+        $('pdfx-overlay').classList.remove('open');
+        if(failed > 0){
+          // Betroffene Geraete benennen, damit die Bild-URL gezielt getauscht werden kann
+          const namen = (typeof promotions !== 'undefined')
+            ? promotions.filter(p => p.bildUrl && failedUrls.includes(p.bildUrl))
+                        .map(p => p.geraetebezeichnung)
+                        .filter(Boolean)
+            : [];
+          const liste = namen.length
+            ? namen.slice(0, 3).join(', ') + (namen.length > 3 ? ` +${namen.length - 3} weitere` : '')
+            : `${failed} Bild(er)`;
+          showMessage(`⚠️ PDF erstellt – Bild fehlt bei: ${liste} (Details in der Konsole)`, true);
+        }else{
+          showMessage('✅ PDF mit klickbarem Inhaltsverzeichnis erstellt');
+        }
+      }, 500);
+
+    }catch(err){
+      console.error(err);
+      $('pdfx-overlay').classList.remove('open');
+      showMessage('Fehler beim PDF-Export: ' + (err && err.message ? err.message : 'unbekannt'), true);
+    }finally{
+      if(wasAdmin) document.body.classList.add('qp-admin');
+    }
+  };
+})();
+</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js');});}</script>
+</body>
+</html>
