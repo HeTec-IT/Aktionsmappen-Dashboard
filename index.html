@@ -1095,6 +1095,7 @@ body.qp-admin .promo-vk-badge { cursor:pointer; }
         <div class="ac-chips ac-quick">
           <button type="button" onclick="acEnd('bundleEnd','bundleStart','month')">Monatsende</button>
           <button type="button" onclick="acEnd('bundleEnd','bundleStart',30)">+30 Tage</button>
+          <label class="ac-chipcheck"><input type="checkbox" id="bundleDauerhaft" name="bundleDauerhaft" onchange="toggleDauerEnd('bundleEnd',this.checked)"> ♾️ Dauerhaft</label>
         </div>
 
         <details class="ac-more">
@@ -1144,6 +1145,7 @@ body.qp-admin .promo-vk-badge { cursor:pointer; }
           <button type="button" onclick="acEnd('pushEnd','pushStart','month')">Monatsende</button>
           <button type="button" onclick="acEnd('pushEnd','pushStart',7)">+7 Tage</button>
           <button type="button" onclick="acEnd('pushEnd','pushStart',30)">+30 Tage</button>
+          <label class="ac-chipcheck"><input type="checkbox" id="pushDauerhaft" name="pushDauerhaft" onchange="toggleDauerEnd('pushEnd',this.checked)"> ♾️ Dauerhaft</label>
         </div>
         <label class="ac-lbl" for="pushBemerkung">Was gibt es extra?</label>
         <textarea id="pushBemerkung" name="pushBemerkung" class="form-input" rows="3"></textarea>
@@ -1169,6 +1171,7 @@ body.qp-admin .promo-vk-badge { cursor:pointer; }
         <div class="ac-chips ac-quick">
           <button type="button" onclick="acEnd('incentiveEnd','incentiveStart','month')">Monatsende</button>
           <button type="button" onclick="acEnd('incentiveEnd','incentiveStart',30)">+30 Tage</button>
+          <label class="ac-chipcheck"><input type="checkbox" id="incentiveDauerhaft" name="incentiveDauerhaft" onchange="toggleDauerEnd('incentiveEnd',this.checked)"> ♾️ Dauerhaft</label>
           <label class="ac-chipcheck"><input type="checkbox" id="incentiveSichtbar" name="incentiveSichtbar" checked> 👁️ Sichtbar</label>
         </div>
         <label class="ac-lbl" for="incentiveBemerkung">Beschreibung</label>
@@ -1455,6 +1458,8 @@ window.toggleDauerhaftAktiv = (checked) => {
   if(checked){ el.removeAttribute('required'); } else { el.setAttribute('required','required'); }
 };
 
+window.toggleDauerEnd = (endId,checked) => { const el=document.getElementById(endId); if(el) el.disabled=!!checked; };
+
 window.toggleFreeText = (override) => {
   const sel=document.getElementById('anbieterSelect');
   const cont=document.getElementById('anbieter-freitext-container');
@@ -1514,6 +1519,7 @@ async function loadData(){
   try{
     const localSavedAt=localStorage.getItem(STORAGE_KEY_LASTSAVE)||'';
     const cloud=await loadDataFromCloud();
+    window.__cloudDauerMig=!!(cloud&&cloud.dauerhaftMigrated===true);
     const cloudSavedAt=(cloud&&cloud.__meta&&cloud.__meta.updatedAt)?cloud.__meta.updatedAt:'';
     const localIsNewer=localSavedAt && (!cloudSavedAt || new Date(localSavedAt)>new Date(cloudSavedAt));
     if(cloud&&typeof cloud==='object'&&!localIsNewer){
@@ -1584,7 +1590,7 @@ function saveData(){
     let cloudPromise=Promise.resolve(true);
     if(CLOUD_SYNC_ENABLED){
       cloudPromise=(async()=>{
-        const ok=await saveDataToCloud({promotions,incentives,pushProvisions,bundles});
+        const ok=await saveDataToCloud({promotions,incentives,pushProvisions,bundles,dauerhaftMigrated:true});
         if(ok)showMessage('✅ Änderung lokal + in Cloud gespeichert');
         else showMessage('⚠️ Lokal gespeichert, Cloud-Speichern fehlgeschlagen',true);
         return ok;
@@ -1615,6 +1621,21 @@ function updateEmailButtonBadge(){
 // ===== SWITCH VIEW =====
 const ADMIN_PASSWORD = 'HeTec2026!';
 
+// Einmalige Umstellung: alle aktuell laufenden Eintraege auf "dauerhaft"
+function migrateDauerhaft(){
+  try{
+    if(window.__cloudDauerMig===true||localStorage.getItem('AM_DAUERHAFT_MIGRATED')==='1')return;
+    if(new URLSearchParams(window.location.search).get('bundleId'))return;
+    promotions.forEach(p=>{if(!isExpired(p.aktionsende,p.dauerhaftAktiv))p.dauerhaftAktiv=true;});
+    bundles.forEach(b=>{if(b.titel&&!b.legacy&&!isExpired(b.end,b.dauerhaft))b.dauerhaft=true;});
+    pushProvisions.forEach(p=>{if(!isExpired(p.end,p.dauerhaft))p.dauerhaft=true;});
+    incentives.forEach(i=>{if(!isExpired(i.incentiveEnd,i.dauerhaft))i.dauerhaft=true;});
+    localStorage.setItem('AM_DAUERHAFT_MIGRATED','1');
+    window.__cloudDauerMig=true;
+    saveData();
+  }catch(e){console.warn(e);}
+}
+
 window.switchView = () => {
   const toggle=document.getElementById('view-toggle');
   const wantsAdmin=toggle.checked;
@@ -1635,6 +1656,7 @@ window.switchView = () => {
   }
 
   const isAdmin=toggle.checked;
+  if(isAdmin)migrateDauerhaft();
 
   // NEU: Kundenansicht bleibt IMMER sichtbar (auch im Admin-Modus),
   // damit Preise direkt in der Kachel bearbeitet werden koennen.
@@ -1737,7 +1759,7 @@ function sendBundleDataToParent(bundle){
   const rawImages=Array.isArray(b.images)?b.images.filter(Boolean):[];
   const includeSim=typeof b.hasSim==='boolean'?b.hasSim:true;
   const images=(includeSim?rawImages.concat([FIXED_SIM_IMAGE_DATAURI]):rawImages).filter(Boolean).slice(0,3);
-  const payload={type:'BUNDLE_DATA_TRANSFER',titel:b.titel||'Bundle',tarifName:b.tarifName||'',preis:__normalizeEuro(b.angebotspreis||b.preis24||''),preis24:b.preis24||b.angebotspreis||'',preis36:b.preis36||'',einmalkosten:b.einmalkosten||'',show24:b.show24!==false,show36:!!b.show36,detailsHTML:__buildDetailsHTMLFromText(b.rechnungsweg||''),badges:__extractBadgesFromBundle(b),validUntil:b.end||'',images,isBundle:true,geraet:b.titel||'Bundle',tarif:b.tarifName||'',angebotspreis:b.angebotspreis||b.preis24||'',bild:images[0]||'',bezeichnung:b.titel||'Bundle',artikelName:b.tarifName||'',bildUrl:images[0]||'',optionTV:!!b.optionTV,optionOnlineSchutz:!!b.optionOnlineSchutz,optionCustom:b.optionCustom||''};
+  const payload={type:'BUNDLE_DATA_TRANSFER',titel:b.titel||'Bundle',tarifName:b.tarifName||'',preis:__normalizeEuro(b.angebotspreis||b.preis24||''),preis24:b.preis24||b.angebotspreis||'',preis36:b.preis36||'',einmalkosten:b.einmalkosten||'',show24:b.show24!==false,show36:!!b.show36,detailsHTML:__buildDetailsHTMLFromText(b.rechnungsweg||''),badges:__extractBadgesFromBundle(b),validUntil:b.dauerhaft?'':(b.end||''),images,isBundle:true,geraet:b.titel||'Bundle',tarif:b.tarifName||'',angebotspreis:b.angebotspreis||b.preis24||'',bild:images[0]||'',bezeichnung:b.titel||'Bundle',artikelName:b.tarifName||'',bildUrl:images[0]||'',optionTV:!!b.optionTV,optionOnlineSchutz:!!b.optionOnlineSchutz,optionCustom:b.optionCustom||''};
   if(window.parent&&window.parent!==window)window.parent.postMessage(payload,'*');
 }
 window.addEventListener('message',e=>{const d=e.data||{};if(d&&['REQUEST_BUNDLE_SCREENSHOT','REQUEST_BUNDLE_DATA_TRANSFER','REQUEST_BUNDLE_DATA','EXPORT_BUNDLE_DATA'].includes(d.type))sendBundleDataToParent();});
@@ -1808,8 +1830,8 @@ window.setKategorie = val => {
 function applyFilterAndSort() {
   const searchTerm = (document.getElementById('user-search')?.value||'').toLowerCase();
   let filteredPromos = promotions.filter(p => !isExpired(p.aktionsende,p.dauerhaftAktiv));
-  let filteredBundles = bundles.filter(b => b.active===true && !b.legacy && !isExpired(b.end));
-  let filteredPush = pushProvisions.filter(p => !isExpired(p.end));
+  let filteredBundles = bundles.filter(b => b.active===true && !b.legacy && !isExpired(b.end,b.dauerhaft));
+  let filteredPush = pushProvisions.filter(p => !isExpired(p.end,p.dauerhaft));
 
   // Suchfilter
   if(searchTerm) {
@@ -1868,10 +1890,10 @@ function renderAdminPushList(list){
   updateAdminTabCount('admin-tab-count-push',list.length);
   if(!list.length){el.innerHTML='<p class="text-center text-slate-400 py-6 text-sm">Keine Push-Provisionen vorhanden.</p>';return;}
   el.innerHTML=list.map(p=>{
-    const exp=isExpired(p.end);
+    const exp=isExpired(p.end,p.dauerhaft);
     const bd=p.betrag>0?`${p.betrag.toFixed(2)} €`:'Betrag n.A.';
     return`<div class="list-item ${exp?'list-item-border-red':'list-item-border-green'}">
-      <div><div class="font-semibold text-slate-800 text-sm">Push: ${esc(p.titel||'Extra')} (${bd}) ${exp?'<span class="badge badge-red ml-1">ABGELAUFEN</span>':''}</div><div class="text-xs text-slate-400 mt-0.5">Zeitraum: ${esc(p.start)} bis ${esc(p.end)}</div></div>
+      <div><div class="font-semibold text-slate-800 text-sm">Push: ${esc(p.titel||'Extra')} (${bd}) ${exp?'<span class="badge badge-red ml-1">ABGELAUFEN</span>':''}</div><div class="text-xs text-slate-400 mt-0.5">Zeitraum: ${p.dauerhaft?`ab ${esc(p.start)} ♾️ dauerhaft`:`${esc(p.start)} bis ${esc(p.end)}`}</div></div>
       <div class="flex gap-2 flex-shrink-0"><button onclick='editPushProvision("${p.id}")' class="btn btn-primary btn-sm">Bearbeiten</button><button onclick='deletePushProvision("${p.id}")' class="btn btn-ghost btn-sm" title="Löschen">🗑️</button></div>
     </div>`;
   }).join('');
@@ -1885,10 +1907,10 @@ function renderAdminBundleList(list){
   updateAdminTabCount('admin-tab-count-bundle',fixed.length);
   if(!fixed.length){el.innerHTML=html+'<p class="text-center text-slate-400 py-6 text-sm">Keine Bundle-Slots vorhanden.</p>';return;}
   html+=fixed.map(b=>{
-    const exp=isExpired(b.end);
+    const exp=isExpired(b.end,b.dauerhaft);
     const cat=b.categoryLabel||__getCategoryLabel(b.categoryKey);
     return`<div class="list-item ${exp?'list-item-border-red':'list-item-border-navy'}">
-      <div><div class="flex flex-wrap items-center gap-2 mb-1"><span class="font-bold text-blue-900 text-sm">📦 ${esc(b.titel||'(leer)')} ${exp?'<span class="badge badge-red">ABGELAUFEN</span>':''}</span><span class="badge ${b.active?'badge-green':'badge-gray'}">${b.active?'AKTIV':'INAKTIV'}</span><span class="badge badge-blue">${esc(cat)}</span><span class="badge badge-gray">ID: ${b.id}</span></div><div class="text-xs text-slate-500">Tarif: ${esc(b.tarifName||'-')} | Preis: ${esc(b.angebotspreis||'-')} € | ${esc(b.start||'-')} – ${esc(b.end||'-')}</div></div>
+      <div><div class="flex flex-wrap items-center gap-2 mb-1"><span class="font-bold text-blue-900 text-sm">📦 ${esc(b.titel||'(leer)')} ${exp?'<span class="badge badge-red">ABGELAUFEN</span>':''}</span><span class="badge ${b.active?'badge-green':'badge-gray'}">${b.active?'AKTIV':'INAKTIV'}</span><span class="badge badge-blue">${esc(cat)}</span><span class="badge badge-gray">ID: ${b.id}</span></div><div class="text-xs text-slate-500">Tarif: ${esc(b.tarifName||'-')} | Preis: ${esc(b.angebotspreis||'-')} € | ${b.dauerhaft?`${esc(b.start||'-')} – ♾️ dauerhaft`:`${esc(b.start||'-')} – ${esc(b.end||'-')}`}</div></div>
       <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end"><button onclick='copyBundleLink("${b.id}")' class="btn btn-ghost btn-sm">🔗 Link</button><button onclick='editBundle("${b.id}")' class="btn btn-primary btn-sm">Bearbeiten</button><button onclick='toggleBundleActive("${b.id}")' class="btn btn-sm ${b.active?'btn-ghost':'btn-green'}">${b.active?'Deaktivieren':'Aktivieren'}</button></div>
     </div>`;
   }).join('');
@@ -1929,10 +1951,10 @@ function renderAdminIncentiveList(list){
   updateAdminTabCount('admin-tab-count-incentives',list.length);
   if(!list.length){el.innerHTML='<p class="text-center text-slate-400 py-6 text-sm">Keine Incentives vorhanden.</p>';return;}
   el.innerHTML=list.map(p=>{
-    const exp=isExpired(p.incentiveEnd);
+    const exp=isExpired(p.incentiveEnd,p.dauerhaft);
     const sichtbar=typeof p.sichtbar==='boolean'?p.sichtbar:true;
     return`<div class="list-item ${exp?'list-item-border-red':'list-item-border-purple'}">
-      <div><div class="font-semibold text-slate-800 text-sm flex flex-wrap items-center gap-2">${esc(p.titel||'Incentive')} ${exp?'<span class="badge badge-red">ABGELAUFEN</span>':''} <span class="badge ${sichtbar?'badge-green':'badge-gray'}">${sichtbar?'👁️ Sichtbar':'🚫 Ausgeblendet'}</span></div><div class="text-xs text-slate-500 mt-0.5">${esc((p.bemerkung||'').substring(0,60))}${(p.bemerkung||'').length>60?'…':''}</div><div class="text-xs text-slate-400">Laufzeit: ${esc(p.incentiveStart)} bis ${esc(p.incentiveEnd)}</div></div>
+      <div><div class="font-semibold text-slate-800 text-sm flex flex-wrap items-center gap-2">${esc(p.titel||'Incentive')} ${exp?'<span class="badge badge-red">ABGELAUFEN</span>':''} <span class="badge ${sichtbar?'badge-green':'badge-gray'}">${sichtbar?'👁️ Sichtbar':'🚫 Ausgeblendet'}</span></div><div class="text-xs text-slate-500 mt-0.5">${esc((p.bemerkung||'').substring(0,60))}${(p.bemerkung||'').length>60?'…':''}</div><div class="text-xs text-slate-400">Laufzeit: ${p.dauerhaft?`ab ${esc(p.incentiveStart)} ♾️ dauerhaft`:`${esc(p.incentiveStart)} bis ${esc(p.incentiveEnd)}`}</div></div>
       <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">
         <button onclick='toggleIncentiveSichtbar("${p.id}")' class="btn btn-sm ${sichtbar?'btn-ghost':'btn-green'}">${sichtbar?'Ausblenden':'Einblenden'}</button>
         ${exp?`<button onclick='renewIncentive("${p.id}")' class="btn btn-purple btn-sm">+30 Tage</button>`:''}<button onclick='editIncentive("${p.id}")' class="btn btn-primary btn-sm">Bearbeiten</button>
@@ -1945,30 +1967,30 @@ function renderAdminIncentiveList(list){
 // ===== USER RENDERING =====
 function renderUserView(promoList,incList,pushList,bundleList,isSingle=false){
   // --- Push ---
-  const activePush=pushList.filter(p=>!isExpired(p.end));
+  const activePush=pushList.filter(p=>!isExpired(p.end,p.dauerhaft));
   const pushSec=document.getElementById('push-section-user');
   const pushEl=document.getElementById('user-push-list');
   if(activePush.length){
     pushEl.innerHTML=activePush.map(p=>{
       const bd=p.betrag>0?`${p.betrag.toFixed(2)} €`:'N.A.';
-      return`<div class="push-card"><div style="width:48px;height:48px;background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-size:20px;flex-shrink:0">€</div><div><div class="font-bold text-slate-900 text-sm mb-1">💰 ${esc(p.titel||'Push')} – <span class="text-green-600 text-lg font-black">${bd}</span></div><div class="text-sm text-slate-700 mb-1">${esc(p.bemerkung||'')}</div><div class="text-xs text-slate-400">Gültig: ${esc(p.start)} – ${esc(p.end)}</div></div></div>`;
+      return`<div class="push-card"><div style="width:48px;height:48px;background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-size:20px;flex-shrink:0">€</div><div><div class="font-bold text-slate-900 text-sm mb-1">💰 ${esc(p.titel||'Push')} – <span class="text-green-600 text-lg font-black">${bd}</span></div><div class="text-sm text-slate-700 mb-1">${esc(p.bemerkung||'')}</div><div class="text-xs text-slate-400">${p.dauerhaft?'♾️ Dauerhaft gültig':`Gültig: ${esc(p.start)} – ${esc(p.end)}`}</div></div></div>`;
     }).join('');
     if(pushSec)pushSec.classList.remove('hidden');
   }else{pushEl.innerHTML='';if(pushSec)pushSec.classList.add('hidden');}
 
   // --- Incentives ---
-  const activeInc=incList.filter(i=>!isExpired(i.incentiveEnd) && (typeof i.sichtbar==='boolean' ? i.sichtbar : true));
+  const activeInc=incList.filter(i=>!isExpired(i.incentiveEnd,i.dauerhaft) && (typeof i.sichtbar==='boolean' ? i.sichtbar : true));
   const incEl=document.getElementById('user-incentive-list');
   const incSec=document.getElementById('incentive-section-user');
   if(activeInc.length){
     incEl.innerHTML=activeInc.map(i=>`
-      <div class="incentive-card"><img src="${esc(i.bildUrl||'')}" onerror="this.src='https://placehold.co/64x64/f3e8ff/7e22ce?text=⭐'" alt="${esc(i.titel||'')}" style="width:64px;height:64px;object-fit:contain;border-radius:10px;background:#f8fafc;border:1px solid #f1f5f9;flex-shrink:0"><div><div class="font-extrabold text-purple-700 mb-1">⭐ ${esc(i.titel||'Incentive')}</div><div class="text-sm text-slate-700 mb-1">${esc(i.bemerkung||'')}</div><div class="text-xs text-slate-400">Aktion: ${esc(i.incentiveStart)} – ${esc(i.incentiveEnd)}</div></div></div>
+      <div class="incentive-card"><img src="${esc(i.bildUrl||'')}" onerror="this.src='https://placehold.co/64x64/f3e8ff/7e22ce?text=⭐'" alt="${esc(i.titel||'')}" style="width:64px;height:64px;object-fit:contain;border-radius:10px;background:#f8fafc;border:1px solid #f1f5f9;flex-shrink:0"><div><div class="font-extrabold text-purple-700 mb-1">⭐ ${esc(i.titel||'Incentive')}</div><div class="text-sm text-slate-700 mb-1">${esc(i.bemerkung||'')}</div><div class="text-xs text-slate-400">${i.dauerhaft?'♾️ Dauerhaft':`Aktion: ${esc(i.incentiveStart)} – ${esc(i.incentiveEnd)}`}</div></div></div>
     `).join('');
     if(incSec)incSec.classList.remove('hidden');
   }else{incEl.innerHTML='<p class="text-center text-slate-400 italic py-6 col-span-full text-sm">Keine aktuellen Incentives.</p>';if(incSec)incSec.classList.remove('hidden');}
 
   // --- Bundles ---
-  const activeBundles=isSingle?bundleList:bundleList.filter(b=>b.active===true&&!b.legacy&&!isExpired(b.end));
+  const activeBundles=isSingle?bundleList:bundleList.filter(b=>b.active===true&&!b.legacy&&!isExpired(b.end,b.dauerhaft));
   const bundleEl=document.getElementById('user-bundle-list');
   const bundleSec=document.getElementById('bundle-section-header');
   if(activeBundles.length){
@@ -1994,7 +2016,7 @@ function renderUserView(promoList,incList,pushList,bundleList,isSingle=false){
       let priceHtml='';
       if(opts.length){const key='bundle_term_'+b.id;let sel=parseInt(localStorage.getItem(key)||'0',10);if(!opts.some(o=>o.m===sel))sel=opts[0].m;const dv=(opts.find(o=>o.m===sel)||opts[0]).v;const selHtml=opts.length>1?`<select style="border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:white;padding:3px 8px;border-radius:6px;font-weight:700;font-size:12px" onchange="window.onBundleTermChange&&window.onBundleTermChange('${b.id}',this.value)">${opts.map(o=>`<option value="${o.m}" ${o.m===sel?'selected':''}>${o.m} Monate</option>`).join('')}</select>`:`<span style="font-size:12px;font-weight:700">${opts[0].m} Monate</span>`;priceHtml=`<div style="background:#dc2626;color:white;border-radius:10px;padding:12px 16px;text-align:center;min-width:130px" data-bundle-id="${b.id}" data-p24="${p24}" data-p36="${p36}"><div style="margin-bottom:4px">${selHtml}</div><div style="font-size:10px;text-transform:uppercase;font-weight:700;opacity:.8">Angebotspreis</div><div id="bundle-price-${b.id}" style="font-size:24px;font-weight:900">${dv} €</div>${once?`<div style="font-size:11px;opacity:.8">Einmalig: ${esc(once)} €</div>`:''}</div>`;}
       return`<div class="bundle-card">
-        <div class="bundle-header"><div style="font-size:16px;font-weight:800;margin-bottom:6px">📦 ${esc(b.titel||'Bundle')}</div><span style="font-size:11px;background:rgba(255,255,255,.2);border-radius:100px;padding:3px 10px">Gültig bis: ${esc(b.end)}</span></div>
+        <div class="bundle-header"><div style="font-size:16px;font-weight:800;margin-bottom:6px">📦 ${esc(b.titel||'Bundle')}</div><span style="font-size:11px;background:rgba(255,255,255,.2);border-radius:100px;padding:3px 10px">${b.dauerhaft?'♾️ Dauerhaft':`Gültig bis: ${esc(b.end)}`}</span></div>
         <div style="padding:20px">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
             <div><div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px">${esc(b.tarifName||'Tarif nicht angegeben')}</div>${badges?`<div style="display:flex;flex-wrap:wrap;gap:6px">${badges}</div>`:''}</div>
@@ -2174,7 +2196,7 @@ const __sameId = (a,b) => String(a||'') === String(b||'');
 window.savePushProvision=event=>{
   event.preventDefault();const form=event.target;
   const bv=parseFloat(form.pushBetrag.value);if(isNaN(bv)||bv<=0){showMessage('Bitte gültigen Betrag > 0 eingeben.',true);return;}
-  const data={id:form.dataset.editingId||generateId(),titel:form.pushTitel.value||'Zusatz-Push',betrag:bv,start:form.pushStart.value,end:form.pushEnd.value,bemerkung:form.pushBemerkung.value,createdAt:form.dataset.editingId?(pushProvisions.find(p=>__sameId(p.id,form.dataset.editingId))?.createdAt||new Date().toISOString()):new Date().toISOString(),updatedAt:new Date().toISOString()};
+  const data={id:form.dataset.editingId||generateId(),titel:form.pushTitel.value||'Zusatz-Push',betrag:bv,start:form.pushStart.value,end:form.pushEnd.value,dauerhaft:!!form.pushDauerhaft.checked,bemerkung:form.pushBemerkung.value,createdAt:form.dataset.editingId?(pushProvisions.find(p=>__sameId(p.id,form.dataset.editingId))?.createdAt||new Date().toISOString()):new Date().toISOString(),updatedAt:new Date().toISOString()};
   let clog=null;
   if(!form.dataset.editingId){clog=`💰 Neuer PUSH: ${data.titel} (${data.betrag.toFixed(2)}€) ab ${data.start}`;}
   else{const op=pushProvisions.find(p=>__sameId(p.id,form.dataset.editingId));if(op&&op.betrag!==data.betrag){clog=data.betrag>op.betrag?`💰 PUSH ERHÖHT: ${data.titel} jetzt ${data.betrag.toFixed(2)}€`:`📉 Push gesenkt: ${data.titel} auf ${data.betrag.toFixed(2)}€`;}}
@@ -2182,7 +2204,7 @@ window.savePushProvision=event=>{
   if(clog)addRecentChange(clog);saveData();form.reset();delete form.dataset.editingId;document.getElementById('push-submit-btn').textContent='Push Speichern';
 };
 window.deletePushProvision=id=>{if(!confirm('Wirklich löschen?'))return;pushProvisions=pushProvisions.filter(p=>!__sameId(p.id,id));saveData();showMessage('Push gelöscht.');};
-window.editPushProvision=id=>{const d=pushProvisions.find(p=>__sameId(p.id,id));if(!d)return;const f=document.getElementById('push-form');f.pushTitel.value=d.titel||'';f.pushBetrag.value=d.betrag||0;f.pushStart.value=d.start||'';f.pushEnd.value=d.end||'';f.pushBemerkung.value=d.bemerkung||'';f.dataset.editingId=id;document.getElementById('push-submit-btn').textContent='Änderungen Speichern';f.scrollIntoView({behavior:'smooth'});};
+window.editPushProvision=id=>{const d=pushProvisions.find(p=>__sameId(p.id,id));if(!d)return;const f=document.getElementById('push-form');f.pushTitel.value=d.titel||'';f.pushBetrag.value=d.betrag||0;f.pushStart.value=d.start||'';f.pushEnd.value=d.end||'';f.pushDauerhaft.checked=!!d.dauerhaft;toggleDauerEnd('pushEnd',!!d.dauerhaft);f.pushBemerkung.value=d.bemerkung||'';f.dataset.editingId=id;document.getElementById('push-submit-btn').textContent='Änderungen Speichern';f.scrollIntoView({behavior:'smooth'});};
 
 window.saveBundle=event=>{
   event.preventDefault();const form=event.target;
@@ -2198,7 +2220,7 @@ window.saveBundle=event=>{
   if(form.bundlePreis)form.bundlePreis.value=p24;
   const existing=bundles.find(b=>__sameId(b.id,slotId));
   const wasExisting=!!(existing&&existing.titel);
-  const data={id:slotId,__fixedSlot:true,legacy:false,categoryKey:meta.categoryKey,categoryLabel:__getCategoryLabel(meta.categoryKey),active:!!form.bundleActive?.checked,titel:form.bundleTitel.value,tarifName:form.bundleTarifName.value,angebotspreis:p24,preis24:p24,preis36:p36,einmalkosten:once,show24:show24,show36:show36,hasSim:typeof form.bundleHasSim!=='undefined'?!!form.bundleHasSim.checked:true,optionOnlineSchutz:form.bundleOptionOnlineSchutz.checked,optionTV:form.bundleOptionTV.checked,optionCustom:form.bundleOptionCustom.value,images,shopLink:form.bundleShopLink.value,gutscheincode:form.bundleGutschein.value,rechnungsweg:form.bundleRechnungsweg.value,start:form.bundleStart.value,end:form.bundleEnd.value,createdAt:existing?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+  const data={id:slotId,__fixedSlot:true,legacy:false,categoryKey:meta.categoryKey,categoryLabel:__getCategoryLabel(meta.categoryKey),active:!!form.bundleActive?.checked,titel:form.bundleTitel.value,tarifName:form.bundleTarifName.value,angebotspreis:p24,preis24:p24,preis36:p36,einmalkosten:once,show24:show24,show36:show36,hasSim:typeof form.bundleHasSim!=='undefined'?!!form.bundleHasSim.checked:true,optionOnlineSchutz:form.bundleOptionOnlineSchutz.checked,optionTV:form.bundleOptionTV.checked,optionCustom:form.bundleOptionCustom.value,images,shopLink:form.bundleShopLink.value,gutscheincode:form.bundleGutschein.value,rechnungsweg:form.bundleRechnungsweg.value,start:form.bundleStart.value,end:form.bundleEnd.value,dauerhaft:!!form.bundleDauerhaft.checked,createdAt:existing?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
   const idx=bundles.findIndex(b=>__sameId(b.id,slotId));if(idx!==-1){bundles[idx]=data;showMessage(`✅ "${data.titel}" (${meta.label}) aktualisiert!`);}else{bundles.push(data);showMessage(`✅ "${data.titel}" in ${meta.label} gespeichert!`);}
   saveData();
 
@@ -2240,7 +2262,7 @@ window.loadBundleSlotIntoForm=slotId=>{
   f.bundleOptionCustom.value=d.optionCustom||'';
   const cont=document.getElementById('bundle-images-container');cont.innerHTML='';
   if(Array.isArray(d.images)&&d.images.length>0)d.images.forEach(u=>addBundleImageField(u));else addBundleImageField();
-  f.bundleShopLink.value=d.shopLink||'';f.bundleGutschein.value=d.gutscheincode||'';f.bundleRechnungsweg.value=d.rechnungsweg||'';f.bundleStart.value=d.start||'';f.bundleEnd.value=d.end||'';
+  f.bundleShopLink.value=d.shopLink||'';f.bundleGutschein.value=d.gutscheincode||'';f.bundleRechnungsweg.value=d.rechnungsweg||'';f.bundleStart.value=d.start||'';f.bundleEnd.value=d.end||'';f.bundleDauerhaft.checked=!!d.dauerhaft;toggleDauerEnd('bundleEnd',!!d.dauerhaft);
   document.getElementById('bundle-submit-btn').textContent=(d.titel?'Änderungen Speichern':'Bundle Slot Speichern');
 };
 window.onBundleSlotChange=()=>{
@@ -2307,14 +2329,14 @@ window.editPromotion=id=>{
 };
 window.saveIncentive=event=>{
   event.preventDefault();const form=event.target;
-  const data={id:form.dataset.editingId||generateId(),titel:form.incentiveTitel.value,incentiveStart:form.incentiveStart.value,incentiveEnd:form.incentiveEnd.value,bildUrl:form.incentiveBildUrl.value,bemerkung:form.incentiveBemerkung.value,sichtbar:form.incentiveSichtbar?form.incentiveSichtbar.checked:true,priority:1,createdAt:form.dataset.editingId?(incentives.find(i=>__sameId(i.id,form.dataset.editingId))?.createdAt||new Date().toISOString()):new Date().toISOString(),updatedAt:new Date().toISOString()};
+  const data={id:form.dataset.editingId||generateId(),titel:form.incentiveTitel.value,incentiveStart:form.incentiveStart.value,incentiveEnd:form.incentiveEnd.value,dauerhaft:!!form.incentiveDauerhaft.checked,bildUrl:form.incentiveBildUrl.value,bemerkung:form.incentiveBemerkung.value,sichtbar:form.incentiveSichtbar?form.incentiveSichtbar.checked:true,priority:1,createdAt:form.dataset.editingId?(incentives.find(i=>__sameId(i.id,form.dataset.editingId))?.createdAt||new Date().toISOString()):new Date().toISOString(),updatedAt:new Date().toISOString()};
   if(!form.dataset.editingId)addRecentChange(`⭐ Neues Incentive: ${data.titel}`);
   if(form.dataset.editingId){const i=incentives.findIndex(x=>__sameId(x.id,form.dataset.editingId));if(i!==-1){incentives[i]=data;showMessage('Incentive aktualisiert!');}else{incentives.push(data);showMessage('Incentive neu gespeichert – Bearbeitungs-ID war nicht mehr in der Liste.');}}else{incentives.push(data);showMessage('Incentive gespeichert!');}
   saveData();form.reset();delete form.dataset.editingId;document.getElementById('incentive-submit-btn').textContent='Incentive Speichern';
 };
 window.deleteIncentive=id=>{if(!confirm('Löschen?'))return;incentives=incentives.filter(i=>!__sameId(i.id,id));saveData();showMessage('Incentive gelöscht.');};
 window.toggleIncentiveSichtbar=id=>{const i=incentives.findIndex(x=>__sameId(x.id,id));if(i===-1)return;const cur=typeof incentives[i].sichtbar==='boolean'?incentives[i].sichtbar:true;incentives[i].sichtbar=!cur;saveData();showMessage(incentives[i].sichtbar?'Incentive eingeblendet.':'Incentive ausgeblendet.');};
-window.editIncentive=id=>{const d=incentives.find(i=>__sameId(i.id,id));if(!d)return;const f=document.getElementById('incentive-form');f.incentiveTitel.value=d.titel||'';f.incentiveStart.value=d.incentiveStart||'';f.incentiveEnd.value=d.incentiveEnd||'';f.incentiveBildUrl.value=d.bildUrl||'';f.incentiveBemerkung.value=d.bemerkung||'';if(f.incentiveSichtbar)f.incentiveSichtbar.checked=typeof d.sichtbar==='boolean'?d.sichtbar:true;f.dataset.editingId=id;document.getElementById('incentive-submit-btn').textContent='Änderungen Speichern';f.scrollIntoView({behavior:'smooth'});};
+window.editIncentive=id=>{const d=incentives.find(i=>__sameId(i.id,id));if(!d)return;const f=document.getElementById('incentive-form');f.incentiveTitel.value=d.titel||'';f.incentiveStart.value=d.incentiveStart||'';f.incentiveEnd.value=d.incentiveEnd||'';f.incentiveDauerhaft.checked=!!d.dauerhaft;toggleDauerEnd('incentiveEnd',!!d.dauerhaft);f.incentiveBildUrl.value=d.bildUrl||'';f.incentiveBemerkung.value=d.bemerkung||'';if(f.incentiveSichtbar)f.incentiveSichtbar.checked=typeof d.sichtbar==='boolean'?d.sichtbar:true;f.dataset.editingId=id;document.getElementById('incentive-submit-btn').textContent='Änderungen Speichern';f.scrollIntoView({behavior:'smooth'});};
 window.renewIncentive=id=>{const i=incentives.findIndex(x=>__sameId(x.id,id));if(i===-1)return;const d=new Date();d.setDate(d.getDate()+30);const yy=d.getFullYear(),mm=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');incentives[i].incentiveEnd=`${yy}-${mm}-${dd}`;saveData();showMessage(`Incentive verlängert bis ${dd}.${mm}.${yy}!`);};
 
 // ===== INIT =====
@@ -3383,6 +3405,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const s=$(startId)?$(startId).value:'';
     let v; if(mode==='month')v=monthEnd(s); else{const d=parse(s);d.setDate(d.getDate()+mode);v=iso(d);}
     if(endId==='aktionsende'){const c=$('dauerhaftAktiv');if(c&&c.checked){c.checked=false;toggleDauerhaftAktiv(false);}}
+    else{const m={bundleEnd:'bundleDauerhaft',pushEnd:'pushDauerhaft',incentiveEnd:'incentiveDauerhaft'};const c=m[endId]&&$(m[endId]);if(c&&c.checked){c.checked=false;toggleDauerEnd(endId,false);}}
     const e=$(endId);if(!e)return;e.value=v;e.classList.remove('ac-err');
   };
 
@@ -3447,11 +3470,11 @@ document.addEventListener('DOMContentLoaded',()=>{
       open('promo','Neue Aktion',false);
     }else if(key==='push'){
       const f=$('push-form');f.reset();delete f.dataset.editingId;
-      f.pushStart.value=today();f.pushEnd.value=monthEnd();
+      toggleDauerEnd('pushEnd',false);f.pushStart.value=today();f.pushEnd.value=monthEnd();
       open('push','Neuer Push',false);
     }else if(key==='inc'){
       const f=$('incentive-form');f.reset();delete f.dataset.editingId;
-      f.incentiveStart.value=today();f.incentiveEnd.value=monthEnd();
+      toggleDauerEnd('incentiveEnd',false);f.incentiveStart.value=today();f.incentiveEnd.value=monthEnd();
       open('inc','Neues Incentive',false);
     }else if(key==='bundle'){
       try{populateBundleSlotOptions();}catch(e){}
